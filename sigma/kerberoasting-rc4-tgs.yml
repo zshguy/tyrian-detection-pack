@@ -1,0 +1,30 @@
+title: Kerberoasting via RC4 Service Ticket Request
+id: 0f1a2b3c-roast-4d5e-6f70-tyrian000001
+status: stable
+description: >
+  Detects Kerberoasting by flagging RC4-encrypted (etype 0x17) TGS requests for
+  user-account SPNs. Roasting tools force RC4 because it cracks far faster than AES.
+references:
+  - https://attack.mitre.org/techniques/T1558/003/
+  - https://tyriancyber.com/attack/kerberoasting
+author: Tyrian
+date: 2026/07/23
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4769
+    TicketEncryptionType: '0x17'   # RC4-HMAC
+    TicketOptions: '0x40810000'
+  filter_machine:
+    ServiceName|endswith: '$'       # exclude computer-account SPNs
+  filter_krbtgt:
+    ServiceName: 'krbtgt'
+  condition: selection and not filter_machine and not filter_krbtgt
+falsepositives:
+  - Legacy applications or hosts that still negotiate RC4 Kerberos
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1558.003

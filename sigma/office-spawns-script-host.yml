@@ -1,0 +1,38 @@
+title: Office Application Spawns a Script Interpreter
+id: 0f1a2b3c-phsh-4d5e-6f70-tyrian000005
+status: stable
+description: >
+  Detects the process lineage created by malicious document macros: an Office app
+  (Word, Excel, PowerPoint, Outlook) spawning a script host (PowerShell, cmd,
+  wscript, mshta, rundll32). Reliable initial-access signal for phishing.
+references:
+  - https://attack.mitre.org/techniques/T1566/001/
+  - https://tyriancyber.com/attack/spearphishing-attachment
+author: Tyrian
+date: 2026/07/23
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith:
+      - '\winword.exe'
+      - '\excel.exe'
+      - '\powerpnt.exe'
+      - '\outlook.exe'
+    Image|endswith:
+      - '\powershell.exe'
+      - '\cmd.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+      - '\rundll32.exe'
+  condition: selection
+falsepositives:
+  - Rare legitimate Office add-ins; baseline and exclude specific signed tools
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1566.001
+  - attack.execution
+  - attack.t1059

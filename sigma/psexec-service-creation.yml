@@ -1,0 +1,32 @@
+title: PsExec-style Remote Service Installation
+id: 0f1a2b3c-smb0-4d5e-6f70-tyrian000004
+status: stable
+description: >
+  Detects PsExec / smbexec style lateral movement by flagging service installs
+  (Event ID 7045) with random service names or image paths in admin shares and temp.
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+  - https://tyriancyber.com/attack/smb-lateral-movement
+author: Tyrian
+date: 2026/07/23
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7045
+  service_name:
+    ServiceName|re: '^[A-Za-z0-9]{8}$'    # random 8-char service name
+  image_path:
+    ImagePath|contains:
+      - '\ADMIN$\'
+      - '\PSEXESVC'
+      - '\Windows\Temp\'
+      - '-s cmd'
+  condition: selection and (service_name or image_path)
+falsepositives:
+  - Some legitimate management tools install transient services; baseline yours
+level: high
+tags:
+  - attack.lateral_movement
+  - attack.t1021.002

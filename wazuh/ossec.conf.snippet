@@ -1,0 +1,18 @@
+<!--
+  Add this <syscheck> block to your Wazuh manager's /var/ossec/etc/ossec.conf
+  (or the agent's, for endpoint FIM) so rules 100486 / 100487 have file-change
+  telemetry to fire on. Point it at the directories you actually care about, then
+  restart: /var/ossec/bin/wazuh-control restart
+
+  realtime="yes" gives near-instant detection of the encryption burst. On Windows,
+  use a path like <directories ...>C:\Users\Shared\Data</directories>.
+-->
+<syscheck>
+  <disabled>no</disabled>
+  <directories check_all="yes" realtime="yes">/srv/data</directories>
+  <directories check_all="yes" realtime="yes">/home</directories>
+  <!-- Don't alert on your own backups / temp churn -->
+  <ignore>/srv/data/.backups</ignore>
+  <frequency>10</frequency>
+  <alert_new_files>yes</alert_new_files>
+</syscheck>

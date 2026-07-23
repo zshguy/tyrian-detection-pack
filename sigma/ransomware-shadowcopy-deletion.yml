@@ -1,0 +1,38 @@
+title: Shadow Copy Deletion via VSSAdmin or WMIC
+id: 0f1a2b3c-lock-4d5e-6f70-tyrian000002
+status: stable
+description: >
+  Detects the reliable ransomware precursor of deleting volume shadow copies to
+  prevent rollback. Legitimate software almost never does this; ransomware almost
+  always does, just before mass encryption (T1486 via T1490).
+references:
+  - https://attack.mitre.org/techniques/T1490/
+  - https://attack.mitre.org/techniques/T1486/
+  - https://tyriancyber.com/attack/data-encrypted-for-impact
+author: Tyrian
+date: 2026/07/23
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  vssadmin:
+    Image|endswith: '\vssadmin.exe'
+    CommandLine|contains|all:
+      - 'delete'
+      - 'shadows'
+  wmic:
+    Image|endswith: '\wmic.exe'
+    CommandLine|contains: 'shadowcopy delete'
+  powershell:
+    CommandLine|contains|all:
+      - 'Get-WmiObject'
+      - 'Win32_ShadowCopy'
+      - 'Delete'
+  condition: vssadmin or wmic or powershell
+falsepositives:
+  - Rare backup/maintenance scripts; alert and verify rather than suppress
+level: high
+tags:
+  - attack.impact
+  - attack.t1486
+  - attack.t1490

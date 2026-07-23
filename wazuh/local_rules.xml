@@ -1,0 +1,126 @@
+<!--
+  Tyrian Detection Pack — Wazuh rules.
+  Copy into /var/ossec/etc/rules/local_rules.xml on your Wazuh manager and restart:
+    /var/ossec/bin/wazuh-control restart
+  Rule IDs use the 100xxx local range Wazuh reserves for you. Tune the filters,
+  frequency, and timeframe values to your environment before relying on these.
+  See https://tyriancyber.com/attack for what each detects and how to test it.
+-->
+
+<!-- ================= T1566.001  Phishing macro execution ================= -->
+<group name="sysmon,phishing,attack,">
+  <rule id="100110" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.parentImage">winword\.exe$|excel\.exe$|powerpnt\.exe$|outlook\.exe$</field>
+    <field name="win.eventdata.image">powershell\.exe$|cmd\.exe$|wscript\.exe$|mshta\.exe$|rundll32\.exe$</field>
+    <description>Phishing: Office app spawned a script interpreter (T1566.001)</description>
+    <mitre>
+      <id>T1566.001</id>
+      <id>T1059</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- ================= T1003.001  LSASS credential dumping ================= -->
+<group name="sysmon,attack,">
+  <rule id="100310" level="12">
+    <if_group>sysmon_event_10</if_group>
+    <field name="win.eventdata.targetImage">lsass\.exe$</field>
+    <field name="win.eventdata.grantedAccess">0x1010|0x1410|0x143a|0x1438</field>
+    <description>Credential dumping: LSASS memory read access (T1003.001)</description>
+    <mitre>
+      <id>T1003.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+
+  <rule id="100311" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine">comsvcs\.dll.*MiniDump</field>
+    <description>Credential dumping: comsvcs.dll MiniDump of LSASS (T1003.001)</description>
+    <mitre>
+      <id>T1003.001</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- ================= T1021.002  SMB / PsExec lateral movement ================= -->
+<group name="windows,lateral_movement,attack,">
+  <rule id="100210" level="12">
+    <if_group>windows_system</if_group>
+    <field name="win.system.eventID">^7045$</field>
+    <field name="win.eventdata.imagePath">ADMIN\$|PSEXESVC|\\Temp\\.*\.exe</field>
+    <description>Lateral movement: remote service install (PsExec-style, T1021.002)</description>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+  </rule>
+
+  <rule id="100211" level="13" frequency="1" timeframe="60">
+    <if_matched_sid>100210</if_matched_sid>
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^3$</field>
+    <description>Lateral movement: remote service + network logon correlated</description>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- ================= T1558.003  Kerberoasting ================= -->
+<group name="windows,kerberos,attack,">
+  <rule id="100410" level="10">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.ticketEncryptionType">^0x17$</field>
+    <description>Kerberoasting: RC4 service ticket requested (T1558.003)</description>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+
+  <rule id="100411" level="12" frequency="8" timeframe="120">
+    <if_matched_sid>100410</if_matched_sid>
+    <same_field>win.eventdata.targetUserName</same_field>
+    <description>Kerberoasting: bulk RC4 ticket requests from one account</description>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- ================= T1486 / T1490  Ransomware ================= -->
+<group name="ransomware,attack,">
+  <!-- Shadow-copy deletion (reliable precursor) -->
+  <rule id="100485" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine">vssadmin.*delete.*shadows|wmic.*shadowcopy delete</field>
+    <description>Ransomware precursor: shadow copy deletion (T1490)</description>
+    <mitre>
+      <id>T1490</id>
+      <id>T1486</id>
+    </mitre>
+  </rule>
+
+  <!-- Mass file modification burst via FIM (needs the ossec.conf syscheck block) -->
+  <rule id="100486" level="12" frequency="30" timeframe="60">
+    <if_group>syscheck</if_group>
+    <field name="syscheck.event">modified</field>
+    <description>Possible ransomware: mass file modification burst (T1486)</description>
+    <mitre>
+      <id>T1486</id>
+    </mitre>
+  </rule>
+
+  <rule id="100487" level="13">
+    <if_group>syscheck</if_group>
+    <field name="syscheck.path">\.locked$|\.encrypted$|README.*DECRYPT</field>
+    <description>Ransomware artifact: encrypted extension or ransom note written</description>
+    <mitre>
+      <id>T1486</id>
+    </mitre>
+  </rule>
+</group>
