@@ -124,3 +124,71 @@
     </mitre>
   </rule>
 </group>
+
+<!-- ================= T1550.002  Pass the Hash ================= -->
+<group name="windows,lateral_movement,attack,">
+  <rule id="100510" level="8">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^3$</field>
+    <field name="win.eventdata.authenticationPackageName">^NTLM$</field>
+    <description>NTLM network logon (possible Pass-the-Hash, T1550.002)</description>
+    <mitre>
+      <id>T1550.002</id>
+    </mitre>
+  </rule>
+
+  <!-- High confidence: NTLM logon shortly after an LSASS read (rule 100310) -->
+  <rule id="100511" level="13" frequency="1" timeframe="300">
+    <if_matched_sid>100310</if_matched_sid>
+    <if_sid>100510</if_sid>
+    <description>Pass-the-Hash chain: LSASS dump followed by NTLM logon</description>
+    <mitre>
+      <id>T1550.002</id>
+      <id>T1003.001</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- ================= T1110.003  Password Spraying ================= -->
+<group name="windows,credential_access,attack,">
+  <rule id="100610" level="5">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4625$</field>
+    <field name="win.eventdata.subStatus">0xc000006a</field>
+    <description>Failed logon, bad password</description>
+  </rule>
+
+  <rule id="100611" level="12" frequency="10" timeframe="300">
+    <if_matched_sid>100610</if_matched_sid>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <description>Password spraying: many failed logons from one source (T1110.003)</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+  </rule>
+</group>
+
+<!-- ================= T1053.005  Scheduled Task Persistence ================= -->
+<group name="sysmon,persistence,attack,">
+  <rule id="100710" level="10">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">schtasks\.exe$|at\.exe$</field>
+    <field name="win.eventdata.commandLine">/create</field>
+    <field name="win.eventdata.commandLine">powershell|-enc|AppData|\\Temp\\|rundll32|mshta|DownloadString</field>
+    <description>Suspicious scheduled task creation (T1053.005)</description>
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+
+  <rule id="100711" level="8">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4698$</field>
+    <description>Scheduled task created (review for persistence, T1053.005)</description>
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+  </rule>
+</group>

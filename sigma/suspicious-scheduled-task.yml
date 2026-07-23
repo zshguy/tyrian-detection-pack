@@ -1,0 +1,38 @@
+title: Suspicious Scheduled Task Creation
+id: 0f1a2b3c-task-4d5e-6f70-tyrian000008
+status: stable
+description: >
+  Detects likely persistence via scheduled tasks by flagging schtasks.exe / at.exe
+  /create where the task action points at a script host, encoded command, or a
+  user-writable path. Task creation is common; the action is what makes it malicious.
+references:
+  - https://attack.mitre.org/techniques/T1053/005/
+  - https://tyriancyber.com/attack/scheduled-task-persistence
+author: Tyrian
+date: 2026/07/23
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith:
+      - '\schtasks.exe'
+      - '\at.exe'
+    CommandLine|contains: '/create'
+  suspicious:
+    CommandLine|contains:
+      - 'powershell'
+      - '-enc'
+      - 'AppData'
+      - '\Temp\'
+      - 'rundll32'
+      - 'mshta'
+      - 'DownloadString'
+  condition: selection and suspicious
+falsepositives:
+  - Legitimate software installers creating tasks; baseline and exclude signed tools
+level: high
+tags:
+  - attack.persistence
+  - attack.execution
+  - attack.t1053.005

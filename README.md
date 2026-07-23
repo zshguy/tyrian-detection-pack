@@ -19,6 +19,9 @@ hour, $5 free credit to start).
 | Kerberoasting (RC4 TGS) | T1558.003 | `sigma/kerberoasting-rc4-tgs.yml` | `wazuh/local_rules.xml` |
 | LSASS memory dumping | T1003.001 | `sigma/lsass-handle-access.yml` | `wazuh/local_rules.xml` |
 | PsExec / SMB lateral movement | T1021.002 | `sigma/psexec-service-creation.yml` | `wazuh/local_rules.xml` |
+| Pass the Hash | T1550.002 | `sigma/pass-the-hash-ntlm.yml` | `wazuh/local_rules.xml` |
+| Password spraying | T1110.003 | `sigma/password-spraying-4625.yml` | `wazuh/local_rules.xml` |
+| Scheduled task persistence | T1053.005 | `sigma/suspicious-scheduled-task.yml` | `wazuh/local_rules.xml` |
 | Ransomware encryption | T1486 / T1490 | `sigma/ransomware-shadowcopy-deletion.yml` | `wazuh/local_rules.xml` |
 | Phishing macro execution | T1566.001 | `sigma/office-spawns-script-host.yml` | `wazuh/local_rules.xml` |
 

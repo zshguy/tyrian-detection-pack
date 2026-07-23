@@ -1,0 +1,32 @@
+title: Pass-the-Hash via NTLM Network Logon
+id: 0f1a2b3c-pth0-4d5e-6f70-tyrian000006
+status: experimental
+description: >
+  Detects potential Pass-the-Hash by flagging NTLM network logons (Event ID 4624,
+  Logon Type 3) for interactive-style accounts. Noisy on its own (legacy NTLM apps);
+  correlate with a preceding LSASS-access alert for high confidence.
+references:
+  - https://attack.mitre.org/techniques/T1550/002/
+  - https://tyriancyber.com/attack/pass-the-hash
+author: Tyrian
+date: 2026/07/23
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+    AuthenticationPackageName: 'NTLM'
+    LogonProcessName: 'NtLmSsp'
+  filter_anonymous:
+    TargetUserName: 'ANONYMOUS LOGON'
+  filter_machine:
+    TargetUserName|endswith: '$'
+  condition: selection and not filter_anonymous and not filter_machine
+falsepositives:
+  - Legacy applications and services that still use NTLM; run as a hunt or correlate
+level: medium
+tags:
+  - attack.lateral_movement
+  - attack.t1550.002
