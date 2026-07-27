@@ -40,13 +40,19 @@ jobs:
       - name: Commit refreshed dist/
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          if git diff --quiet -- dist/; then
+          # Stage first, then compare against the index. `git diff` alone only
+          # reports modifications to already-tracked files, so a compiled rule
+          # that is missing entirely (the usual case, since contributors on
+          # Windows lose AV-quarantined files) would look like "no drift".
+          git add -A dist/
+          if git diff --cached --quiet -- dist/; then
             echo "dist/ already current"
             exit 0
           fi
+          echo "dist/ drifted:"
+          git diff --cached --stat -- dist/
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/
           git commit -m "ci: recompile dist/ from rules/"
           git push
 
@@ -54,6 +60,7 @@ jobs:
       - name: Report dist/ drift
         if: github.event_name == 'pull_request'
         run: |
+          git add -N -A dist/
           if git diff --quiet -- dist/; then
             echo "dist/ is current"
           else
