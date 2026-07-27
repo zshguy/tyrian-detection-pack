@@ -1,0 +1,8 @@
+// Domain Reconnaissance via Built-in Utilities
+// Detects the burst of net, nltest and whoami calls typical of a freshly landed operator orienting inside a domain. Individually benign, so this is written as a threshold rule rather than a single-event alert.
+// techniques: T1482,T1087.002   severity: medium
+// source: rules/discovery/domain-recon-net-commands.yml  (GENERATED, do not edit by hand)
+Event
+| where ((CommandLine has_any (dynamic(["net group "domain admins"", "net localgroup administrators", "nltest /domain_trusts", "nltest /dclist", "whoami /groups", "net user /domain"]))))
+| summarize Hits=count() by bin(TimeGenerated, 10m), host
+| where Hits >= 3

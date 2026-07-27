@@ -1,0 +1,6 @@
+// AMSI Bypass Attempt in PowerShell
+// Detects the well-known reflection patterns used to neuter the Antimalware Scan Interface before running a payload. Matches script block content, so script block logging must be enabled.
+// techniques: T1562.001   severity: critical
+// source: rules/defense-evasion/powershell-amsi-bypass.yml  (GENERATED, do not edit by hand)
+Event
+| where ((ScriptBlockText has_any (dynamic(["amsiInitFailed", "AmsiUtils", "AmsiScanBuffer", "System.Management.Automation.AmsiUtils"]))))

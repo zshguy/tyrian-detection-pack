@@ -1,0 +1,28 @@
+title: Microsoft Defender Protection Disabled
+id: 6c1055b8-d5f8-44e2-b365-tyrian000029
+status: stable
+description: >
+  Detects real-time protection or scanning being turned off through PowerShell
+  or the registry, which is a routine precursor to dropping tooling that would
+  otherwise be quarantined.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  cmdline:
+    CommandLine|contains:
+      - 'Set-MpPreference -DisableRealtimeMonitoring $true'
+      - 'DisableRealtimeMonitoring 1'
+      - 'Add-MpPreference -ExclusionPath'
+      - 'DisableAntiSpyware'
+  condition: cmdline
+falsepositives:
+  - Deliberate exclusions during software installation, which should be approved
+level: critical
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001

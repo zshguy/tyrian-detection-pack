@@ -1,0 +1,72 @@
+name: validate + compile
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install pyyaml
+
+      # Every rule must parse, carry an ATT&CK technique tag, and use only
+      # constructs the compiler can translate faithfully.
+      - name: Validate rule corpus
+        run: python tools/sigma_compile.py --backend validate
+
+      - name: Compile all backends
+        run: |
+          python tools/sigma_compile.py --backend wazuh    --out dist/wazuh
+          python tools/sigma_compile.py --backend splunk   --out dist/splunk
+          python tools/sigma_compile.py --backend sentinel --out dist/sentinel
+
+      # dist/ is a committed deliverable so the pack is usable without running
+      # anything. CI is the authority for it rather than the contributor's
+      # machine, because Windows endpoint AV quarantines compiled detections
+      # (they contain the attacker strings they match on). Contributors edit
+      # rules/ and never have to produce dist/ themselves.
+      - name: Commit refreshed dist/
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if git diff --quiet -- dist/; then
+            echo "dist/ already current"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/
+          git commit -m "ci: recompile dist/ from rules/"
+          git push
+
+      # On pull requests we only report drift, never push to a fork's branch.
+      - name: Report dist/ drift
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --quiet -- dist/; then
+            echo "dist/ is current"
+          else
+            echo "::notice::dist/ differs from rules/. It will be recompiled automatically when this merges."
+            git diff --stat -- dist/
+          fi
+
+      - name: Coverage summary
+        run: |
+          python tools/sigma_compile.py --backend stats | tee /tmp/stats.json
+          {
+            echo '### Detection coverage'
+            echo '```json'
+            cat /tmp/stats.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

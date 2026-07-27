@@ -1,0 +1,26 @@
+title: Security or System Event Log Cleared
+id: 5b0f44a7-c4e7-43d1-a254-tyrian000028
+status: stable
+description: >
+  Detects clearing of the Windows event log. There is almost no benign reason to
+  wipe the Security log on a production host, and it is the classic final step
+  before an operator disengages.
+references:
+  - https://attack.mitre.org/techniques/T1070/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - 1102
+      - 104
+  condition: selection
+falsepositives:
+  - Deliberate log rotation during decommissioning
+level: critical
+tags:
+  - attack.defense_evasion
+  - attack.t1070.001

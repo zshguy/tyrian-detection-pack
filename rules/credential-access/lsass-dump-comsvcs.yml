@@ -1,0 +1,29 @@
+title: LSASS Dump via comsvcs.dll MiniDump
+id: 6e1055b2-d5f8-4042-b365-tyrian000013
+status: stable
+description: >
+  Detects the living-off-the-land LSASS dump that calls MiniDump inside
+  comsvcs.dll through rundll32, avoiding procdump and mimikatz binaries
+  entirely. The ordinal form is the usual giveaway.
+references:
+  - https://attack.mitre.org/techniques/T1003/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith: '\\rundll32.exe'
+    CommandLine|contains: 'comsvcs'
+  dumpcall:
+    CommandLine|contains:
+      - 'MiniDump'
+      - '#24'
+  condition: selection and dumpcall
+falsepositives:
+  - Essentially none in normal operation
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003.001

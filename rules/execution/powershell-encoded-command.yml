@@ -1,0 +1,33 @@
+title: PowerShell Encoded Command Execution
+id: c276bb18-3b5e-46a8-19cb-tyrian000019
+status: stable
+description: >
+  Detects PowerShell invoked with a base64 encoded command, which is how most
+  loaders and post-exploitation frameworks hide their payload from casual
+  command-line review.
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith:
+      - '\\powershell.exe'
+      - '\\pwsh.exe'
+  encoded:
+    CommandLine|contains:
+      - ' -enc'
+      - ' -EncodedCommand'
+      - ' -e '
+      - ' -ec '
+  condition: selection and encoded
+falsepositives:
+  - Some management suites wrap scripts in encoded commands; allowlist by parent
+level: high
+tags:
+  - attack.execution
+  - attack.defense_evasion
+  - attack.t1059.001

@@ -1,0 +1,29 @@
+title: Write to an Administrative Share
+id: a05499f6-193c-4486-f7a9-tyrian000017
+status: stable
+description: >
+  Detects file writes to the hidden administrative shares, which is the staging
+  half of PsExec-style lateral movement: drop the payload over SMB, then start
+  it as a service on the target.
+references:
+  - https://attack.mitre.org/techniques/T1021/002/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5145
+    ObjectName|contains:
+      - 'ADMIN$'
+      - 'C$'
+  filter_machine:
+    SubjectUserName|endswith: '$'
+  condition: selection and not filter_machine
+falsepositives:
+  - Backup, imaging and software-deployment tooling that uses admin shares
+level: high
+tags:
+  - attack.lateral_movement
+  - attack.t1021.002

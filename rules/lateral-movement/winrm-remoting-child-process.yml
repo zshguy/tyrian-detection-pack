@@ -1,0 +1,24 @@
+title: Remote Code Execution via WinRM and PowerShell Remoting
+id: 9b4388e5-082b-4375-e698-tyrian000016
+status: experimental
+description: >
+  Detects child processes of the WinRM host, which is how Enter-PSSession and
+  Invoke-Command land code on a remote machine. Expect noise wherever fleets are
+  managed with PSRemoting; pair this with an allowlist of admin source hosts.
+references:
+  - https://attack.mitre.org/techniques/T1021/006/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    ParentImage|endswith: '\\wsmprovhost.exe'
+  condition: selection
+falsepositives:
+  - Configuration management and routine remote administration
+level: medium
+tags:
+  - attack.lateral_movement
+  - attack.t1021.006

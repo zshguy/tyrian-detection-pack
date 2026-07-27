@@ -1,0 +1,31 @@
+title: AS-REP Roasting via Accounts Without Kerberos Pre-Authentication
+id: 2a7c11de-91b4-4c0e-9f21-tyrian000009
+status: stable
+description: >
+  Detects Kerberos AS-REQ activity for accounts that have pre-authentication
+  disabled. The KDC hands back an AS-REP encrypted with a key derived from the
+  account password, which is then cracked offline. Deliberate use of
+  DONT_REQ_PREAUTH is rare, so volume here is usually roasting.
+references:
+  - https://attack.mitre.org/techniques/T1558/004/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4768
+    TicketOptions: '0x40810010'
+    TicketEncryptionType:
+      - '0x17'
+      - '0x18'
+  filter_machine:
+    TargetUserName|endswith: '$'
+  condition: selection and not filter_machine
+falsepositives:
+  - Legacy UNIX or appliance accounts intentionally configured without pre-auth
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1558.004

@@ -1,0 +1,34 @@
+title: Remote Process Creation via WMI
+id: 8a3277d4-f71a-4264-d587-tyrian000015
+status: stable
+description: >
+  Detects processes spawned by the WMI provider host, which is how wmic /node
+  and Invoke-WmiMethod execute code on a remote machine. Legitimate WMI rarely
+  spawns script interpreters or download utilities.
+references:
+  - https://attack.mitre.org/techniques/T1047/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    ParentImage|endswith: '\\WmiPrvSE.exe'
+  suspicious_child:
+    Image|endswith:
+      - '\\powershell.exe'
+      - '\\pwsh.exe'
+      - '\\cmd.exe'
+      - '\\mshta.exe'
+      - '\\rundll32.exe'
+      - '\\regsvr32.exe'
+      - '\\certutil.exe'
+  condition: selection and suspicious_child
+falsepositives:
+  - Monitoring and inventory agents that act on hosts over WMI
+level: high
+tags:
+  - attack.lateral_movement
+  - attack.execution
+  - attack.t1047

@@ -1,0 +1,540 @@
+<!--
+  Tyrian Detection Pack - Wazuh rules (GENERATED, do not edit by hand).
+  Source of truth: rules/**.yml   Regenerate: python tools/sigma_compile.py --backend wazuh
+
+  Install:  copy into /var/ossec/etc/rules/local_rules.xml on the manager, then
+            /var/ossec/bin/wazuh-control restart
+  IDs use the 100000+ local range Wazuh reserves for you.
+  Tune thresholds to your environment before relying on these.
+-->
+
+<!-- Possible DNS Tunneling via Abnormally Long Queries  [rules/command-and-control/dns-tunneling-long-query.yml] -->
+<group name="sysmon,">
+  <rule id="100100" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.system.eventID">^22$</field>
+    <field name="win.eventdata.queryName">^[A-Za-z0-9+/=_-]{40,}\\.</field>
+    <frequency>10</frequency>
+    <timeframe>300</timeframe>
+    <same_field>host</same_field>
+    <description>Possible DNS Tunneling via Abnormally Long Queries</description>
+    <mitre>
+      <id>T1071.004</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- AS-REP Roasting via Accounts Without Kerberos Pre-Authentication  [rules/credential-access/asrep-roasting-no-preauth.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100101" level="12">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4768$</field>
+    <field name="win.eventdata.ticketOptions">^0x40810010$</field>
+    <field name="win.eventdata.ticketEncryptionType">^0x17$|^0x18$</field>
+    <description>AS-REP Roasting via Accounts Without Kerberos Pre-Authentication</description>
+    <mitre>
+      <id>T1558.004</id>
+    </mitre>
+    <!-- tune: source rule also excludes [filter_machine]; add <field negate="yes"> as needed -->
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- DCSync Directory Replication From a Non-Domain-Controller  [rules/credential-access/dcsync-replication-rights.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100102" level="14">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4662$</field>
+    <field name="win.eventdata.properties">1131f6aa\-9c07\-11d1\-f79f\-00c04fc2dcd2|1131f6ad\-9c07\-11d1\-f79f\-00c04fc2dcd2|89e95b76\-444d\-4c62\-991a\-0facbeda640c</field>
+    <description>DCSync Directory Replication From a Non-Domain-Controller</description>
+    <mitre>
+      <id>T1003.006</id>
+    </mitre>
+    <!-- tune: source rule also excludes [filter_machine]; add <field negate="yes"> as needed -->
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Kerberoasting via RC4 Service Ticket Request  [rules/credential-access/kerberoasting-rc4-tgs.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100103" level="12">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.ticketEncryptionType">^0x17$</field>
+    <field name="win.eventdata.ticketOptions">^0x40810000$</field>
+    <description>Kerberoasting via RC4 Service Ticket Request</description>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+    <!-- tune: source rule also excludes [filter_machine, filter_krbtgt]; add <field negate="yes"> as needed -->
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- LSASS Dump via comsvcs.dll MiniDump  [rules/credential-access/lsass-dump-comsvcs.yml] -->
+<group name="sysmon,">
+  <rule id="100104" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\rundll32\.exe$</field>
+    <field name="win.eventdata.commandLine">comsvcs</field>
+    <field name="win.eventdata.commandLine">MiniDump|\#24</field>
+    <description>LSASS Dump via comsvcs.dll MiniDump</description>
+    <mitre>
+      <id>T1003.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- LSASS Memory Access with Read Rights  [rules/credential-access/lsass-handle-access.yml] -->
+<group name="windows,">
+  <rule id="100105" level="12">
+    <if_group>windows</if_group>
+    <field name="win.eventdata.targetImage">\\lsass\.exe$</field>
+    <field name="win.eventdata.grantedAccess">^0x1010$|^0x1410$|^0x143a$|^0x1438$</field>
+    <description>LSASS Memory Access with Read Rights</description>
+    <mitre>
+      <id>T1003.001</id>
+    </mitre>
+    <!-- tune: source rule also excludes [filter_known]; add <field negate="yes"> as needed -->
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- NTDS.dit Extraction via ntdsutil or Shadow Copy  [rules/credential-access/ntds-dit-extraction.yml] -->
+<group name="sysmon,">
+  <rule id="100106" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\ntdsutil\.exe$</field>
+    <field name="win.eventdata.commandLine">create|ifm</field>
+    <field name="win.eventdata.commandLine">ntds\.dit</field>
+    <description>NTDS.dit Extraction via ntdsutil or Shadow Copy</description>
+    <mitre>
+      <id>T1003.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Password Spraying, Many Accounts from One Source  [rules/credential-access/password-spraying-4625.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100107" level="12">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4625$</field>
+    <field name="win.eventdata.subStatus">^0xc000006a$</field>
+    <frequency>10</frequency>
+    <timeframe>300</timeframe>
+    <same_field>win.eventdata.ipAddress</same_field>
+    <description>Password Spraying, Many Accounts from One Source</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- SAM and SYSTEM Registry Hive Dump  [rules/credential-access/sam-hive-dump.yml] -->
+<group name="sysmon,">
+  <rule id="100108" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\reg\.exe$</field>
+    <field name="win.eventdata.commandLine">save</field>
+    <field name="win.eventdata.commandLine">hklm\\\\sam|hklm\\\\system|hklm\\\\security</field>
+    <description>SAM and SYSTEM Registry Hive Dump</description>
+    <mitre>
+      <id>T1003.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- WDigest UseLogonCredential Enabled (Cleartext Credential Staging)  [rules/credential-access/wdigest-cleartext-enabled.yml] -->
+<group name="sysmon,">
+  <rule id="100109" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.targetObject">\\\\WDigest\\\\UseLogonCredential$</field>
+    <field name="win.eventdata.details">^DWORD\ \(0x00000001\)$</field>
+    <description>WDigest UseLogonCredential Enabled (Cleartext Credential Staging)</description>
+    <mitre>
+      <id>T1112</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Microsoft Defender Protection Disabled  [rules/defense-evasion/defender-disabled.yml] -->
+<group name="sysmon,">
+  <rule id="100110" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine">Set\-MpPreference\ \-DisableRealtimeMonitoring\ \$true|DisableRealtimeMonitoring\ 1|Add\-MpPreference\ \-ExclusionPath|DisableAntiSpyware</field>
+    <description>Microsoft Defender Protection Disabled</description>
+    <mitre>
+      <id>T1562.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Security or System Event Log Cleared  [rules/defense-evasion/event-log-cleared.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100111" level="14">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^1102$|^104$</field>
+    <description>Security or System Event Log Cleared</description>
+    <mitre>
+      <id>T1070.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- AMSI Bypass Attempt in PowerShell  [rules/defense-evasion/powershell-amsi-bypass.yml] -->
+<group name="windows,powershell,">
+  <rule id="100112" level="14">
+    <if_group>windows</if_group>
+    <field name="win.eventdata.scriptBlockText">amsiInitFailed|AmsiUtils|AmsiScanBuffer|System\.Management\.Automation\.AmsiUtils</field>
+    <description>AMSI Bypass Attempt in PowerShell</description>
+    <mitre>
+      <id>T1562.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Active Directory Collection Consistent With SharpHound  [rules/discovery/bloodhound-sharphound-collection.yml] -->
+<group name="sysmon,">
+  <rule id="100113" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine">sharphound|\-c\ all|\-\-collectionmethod|Invoke\-BloodHound|bloodhound\.py</field>
+    <description>Active Directory Collection Consistent With SharpHound</description>
+    <mitre>
+      <id>T1087.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Domain Reconnaissance via Built-in Utilities  [rules/discovery/domain-recon-net-commands.yml] -->
+<group name="sysmon,">
+  <rule id="100114" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine">net\ group\ "domain\ admins"|net\ localgroup\ administrators|nltest\ /domain_trusts|nltest\ /dclist|whoami\ /groups|net\ user\ /domain</field>
+    <frequency>3</frequency>
+    <timeframe>600</timeframe>
+    <same_field>host</same_field>
+    <description>Domain Reconnaissance via Built-in Utilities</description>
+    <mitre>
+      <id>T1482</id>
+      <id>T1087.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- certutil Used as a Downloader  [rules/execution/certutil-download.yml] -->
+<group name="sysmon,">
+  <rule id="100115" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\certutil\.exe$</field>
+    <field name="win.eventdata.commandLine">urlcache|verifyctl|decode|\-f\ http</field>
+    <description>certutil Used as a Downloader</description>
+    <mitre>
+      <id>T1105</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- mshta Executing a Remote or Script Payload  [rules/execution/mshta-remote-payload.yml] -->
+<group name="sysmon,">
+  <rule id="100116" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\mshta\.exe$</field>
+    <field name="win.eventdata.commandLine">http://|https://|javascript:|vbscript:|\.hta</field>
+    <description>mshta Executing a Remote or Script Payload</description>
+    <mitre>
+      <id>T1218.005</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- PowerShell Download Cradle  [rules/execution/powershell-download-cradle.yml] -->
+<group name="sysmon,">
+  <rule id="100117" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\powershell\.exe$|\\\\pwsh\.exe$</field>
+    <field name="win.eventdata.commandLine">DownloadString|DownloadFile|Invoke\-WebRequest|Net\.WebClient|iwr\ |curl\ </field>
+    <field name="win.eventdata.commandLine">IEX|Invoke\-Expression|iex\(|\|\ iex</field>
+    <description>PowerShell Download Cradle</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- PowerShell Encoded Command Execution  [rules/execution/powershell-encoded-command.yml] -->
+<group name="sysmon,">
+  <rule id="100118" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\powershell\.exe$|\\\\pwsh\.exe$</field>
+    <field name="win.eventdata.commandLine">\ \-enc|\ \-EncodedCommand|\ \-e\ |\ \-ec\ </field>
+    <description>PowerShell Encoded Command Execution</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- regsvr32 Scriptlet Execution (Squiblydoo)  [rules/execution/regsvr32-scriptlet-squiblydoo.yml] -->
+<group name="sysmon,">
+  <rule id="100119" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\regsvr32\.exe$</field>
+    <field name="win.eventdata.commandLine">scrobj|/i:http|\.sct</field>
+    <description>regsvr32 Scriptlet Execution (Squiblydoo)</description>
+    <mitre>
+      <id>T1218.010</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Bulk Archive Creation Consistent With Collection Staging  [rules/exfiltration/archive-staging-for-exfil.yml] -->
+<group name="sysmon,">
+  <rule id="100120" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image">\\\\7z\.exe$|\\\\rar\.exe$|\\\\winrar\.exe$</field>
+    <field name="win.eventdata.commandLine">\ a\ |\ \-hp</field>
+    <field name="win.eventdata.commandLine">\\\\Users\\\\|\\\\Documents|\\\\Desktop|\\\\Shares</field>
+    <description>Bulk Archive Creation Consistent With Collection Staging</description>
+    <mitre>
+      <id>T1560.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Backup and Recovery Destruction Before Encryption  [rules/impact/backup-deletion-wbadmin-bcdedit.yml] -->
+<group name="sysmon,">
+  <rule id="100121" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine">wbadmin\ delete</field>
+    <field name="win.eventdata.commandLine">recoveryenabled\ no|bootstatuspolicy\ ignoreallfailures</field>
+    <description>Backup and Recovery Destruction Before Encryption</description>
+    <mitre>
+      <id>T1490</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Shadow Copy Deletion via VSSAdmin or WMIC  [rules/impact/ransomware-shadowcopy-deletion.yml] -->
+<group name="windows,">
+  <rule id="100122" level="12">
+    <if_group>windows</if_group>
+    <field name="win.eventdata.image">\\vssadmin\.exe$</field>
+    <field name="win.eventdata.commandLine">delete|shadows</field>
+    <field name="win.eventdata.image">\\wmic\.exe$</field>
+    <field name="win.eventdata.commandLine">shadowcopy\ delete</field>
+    <field name="win.eventdata.commandLine">Get\-WmiObject|Win32_ShadowCopy|Delete</field>
+    <description>Shadow Copy Deletion via VSSAdmin or WMIC</description>
+    <mitre>
+      <id>T1486</id>
+      <id>T1490</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Database and Backup Services Stopped En Masse  [rules/impact/service-stop-before-encryption.yml] -->
+<group name="sysmon,">
+  <rule id="100123" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine">net\ stop\ |sc\ stop\ |Stop\-Service</field>
+    <field name="win.eventdata.commandLine">sql|veeam|backup|exchange|vss|msexchange</field>
+    <frequency>3</frequency>
+    <timeframe>300</timeframe>
+    <same_field>host</same_field>
+    <description>Database and Backup Services Stopped En Masse</description>
+    <mitre>
+      <id>T1489</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Office Application Spawns a Script Interpreter  [rules/initial-access/office-spawns-script-host.yml] -->
+<group name="windows,">
+  <rule id="100124" level="12">
+    <if_group>windows</if_group>
+    <field name="win.eventdata.parentImage">\\winword\.exe$|\\excel\.exe$|\\powerpnt\.exe$|\\outlook\.exe$</field>
+    <field name="win.eventdata.image">\\powershell\.exe$|\\cmd\.exe$|\\wscript\.exe$|\\cscript\.exe$|\\mshta\.exe$|\\rundll32\.exe$</field>
+    <description>Office Application Spawns a Script Interpreter</description>
+    <mitre>
+      <id>T1566.001</id>
+      <id>T1059</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Lateral Execution via DCOM Object  [rules/lateral-movement/dcom-lateral-execution.yml] -->
+<group name="sysmon,">
+  <rule id="100125" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.parentImage">\\\\mmc\.exe$|\\\\dllhost\.exe$</field>
+    <field name="win.eventdata.image">\\\\cmd\.exe$|\\\\powershell\.exe$|\\\\mshta\.exe$</field>
+    <field name="win.eventdata.parentCommandLine">\-Embedding|MMC20</field>
+    <description>Lateral Execution via DCOM Object</description>
+    <mitre>
+      <id>T1021.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Pass-the-Hash via NTLM Network Logon  [rules/lateral-movement/pass-the-hash-ntlm.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100126" level="8">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4624$</field>
+    <field name="win.eventdata.logonType">^3$</field>
+    <field name="win.eventdata.authenticationPackageName">^NTLM$</field>
+    <field name="win.eventdata.logonProcessName">^NtLmSsp$</field>
+    <description>Pass-the-Hash via NTLM Network Logon</description>
+    <mitre>
+      <id>T1550.002</id>
+    </mitre>
+    <!-- tune: source rule also excludes [filter_anonymous, filter_machine]; add <field negate="yes"> as needed -->
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- PsExec-style Remote Service Installation  [rules/lateral-movement/psexec-service-creation.yml] -->
+<group name="windows,windows_system,">
+  <rule id="100127" level="12">
+    <if_group>windows_system</if_group>
+    <field name="win.system.eventID">^7045$</field>
+    <field name="win.eventdata.serviceName">^[A-Za-z0-9]{8}$</field>
+    <field name="win.eventdata.imagePath">\\ADMIN\$\\|\\PSEXESVC|\\Windows\\Temp\\|\-s\ cmd</field>
+    <description>PsExec-style Remote Service Installation</description>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Write to an Administrative Share  [rules/lateral-movement/smb-admin-share-write.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100128" level="12">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^5145$</field>
+    <field name="win.eventdata.objectName">ADMIN\$|C\$</field>
+    <description>Write to an Administrative Share</description>
+    <mitre>
+      <id>T1021.002</id>
+    </mitre>
+    <!-- tune: source rule also excludes [filter_machine]; add <field negate="yes"> as needed -->
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Remote Code Execution via WinRM and PowerShell Remoting  [rules/lateral-movement/winrm-remoting-child-process.yml] -->
+<group name="sysmon,">
+  <rule id="100129" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.parentImage">\\\\wsmprovhost\.exe$</field>
+    <description>Remote Code Execution via WinRM and PowerShell Remoting</description>
+    <mitre>
+      <id>T1021.006</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Remote Process Creation via WMI  [rules/lateral-movement/wmi-remote-process-creation.yml] -->
+<group name="sysmon,">
+  <rule id="100130" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.parentImage">\\\\WmiPrvSE\.exe$</field>
+    <field name="win.eventdata.image">\\\\powershell\.exe$|\\\\pwsh\.exe$|\\\\cmd\.exe$|\\\\mshta\.exe$|\\\\rundll32\.exe$|\\\\regsvr32\.exe$|\\\\certutil\.exe$</field>
+    <description>Remote Process Creation via WMI</description>
+    <mitre>
+      <id>T1047</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Account Added to a Privileged Local or Domain Group  [rules/persistence/new-local-admin-account.yml] -->
+<group name="windows,windows_security,">
+  <rule id="100131" level="12">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID">^4728$|^4732$|^4756$</field>
+    <description>Account Added to a Privileged Local or Domain Group</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Autorun Persistence via Registry Run Key  [rules/persistence/registry-run-key-write.yml] -->
+<group name="sysmon,">
+  <rule id="100132" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.targetObject">\\\\CurrentVersion\\\\Run\\\\|\\\\CurrentVersion\\\\RunOnce\\\\|\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\</field>
+    <description>Autorun Persistence via Registry Run Key</description>
+    <mitre>
+      <id>T1547.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Service Installed From a Suspicious Path  [rules/persistence/service-creation-suspicious-path.yml] -->
+<group name="windows,windows_system,">
+  <rule id="100133" level="12">
+    <if_group>windows_system</if_group>
+    <field name="win.system.eventID">^7045$</field>
+    <field name="win.eventdata.serviceFileName">\\\\Temp\\\\|\\\\Users\\\\Public\\\\|\\\\AppData\\\\|\\\\ProgramData\\\\|powershell|cmd\.exe\ /c|rundll32</field>
+    <description>Service Installed From a Suspicious Path</description>
+    <mitre>
+      <id>T1543.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Suspicious Scheduled Task Creation  [rules/persistence/suspicious-scheduled-task.yml] -->
+<group name="windows,">
+  <rule id="100134" level="12">
+    <if_group>windows</if_group>
+    <field name="win.eventdata.image">\\schtasks\.exe$|\\at\.exe$</field>
+    <field name="win.eventdata.commandLine">/create</field>
+    <field name="win.eventdata.commandLine">powershell|\-enc|AppData|\\Temp\\|rundll32|mshta|DownloadString</field>
+    <description>Suspicious Scheduled Task Creation</description>
+    <mitre>
+      <id>T1053.005</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- WMI Event Subscription Persistence  [rules/persistence/wmi-event-subscription.yml] -->
+<group name="sysmon,">
+  <rule id="100135" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.system.eventID">^19$|^20$|^21$</field>
+    <description>WMI Event Subscription Persistence</description>
+    <mitre>
+      <id>T1546.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>

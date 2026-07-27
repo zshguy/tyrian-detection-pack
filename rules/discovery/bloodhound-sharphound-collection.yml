@@ -1,0 +1,29 @@
+title: Active Directory Collection Consistent With SharpHound
+id: 8e3277d0-f71a-46c4-d587-tyrian000031
+status: stable
+description: >
+  Detects the command-line shapes produced by SharpHound and equivalent
+  collectors. Mass AD enumeration is the reconnaissance step that precedes
+  nearly every modern domain compromise.
+references:
+  - https://attack.mitre.org/techniques/T1087/002/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    CommandLine|contains:
+      - 'sharphound'
+      - '-c all'
+      - '--collectionmethod'
+      - 'Invoke-BloodHound'
+      - 'bloodhound.py'
+  condition: selection
+falsepositives:
+  - Authorised assessments; correlate with your engagement calendar
+level: high
+tags:
+  - attack.discovery
+  - attack.t1087.002

@@ -1,0 +1,6 @@
+// PsExec-style Remote Service Installation
+// Detects PsExec / smbexec style lateral movement by flagging service installs (Event ID 7045) with random service names or image paths in admin shares and temp.
+// techniques: T1021.002   severity: high
+// source: rules/lateral-movement/psexec-service-creation.yml  (GENERATED, do not edit by hand)
+Event
+| where (((EventID =~ "7045")) and (((ServiceName matches regex "^[A-Za-z0-9]{8}$")) or ((ImagePath has_any (dynamic(["\ADMIN$\", "\PSEXESVC", "\Windows\Temp\", "-s cmd"]))))))

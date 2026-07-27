@@ -1,0 +1,29 @@
+title: Possible DNS Tunneling via Abnormally Long Queries
+id: c376bb13-3b5e-4ea8-19cb-tyrian000035
+status: experimental
+description: >
+  Detects repeated DNS queries with unusually long labels against a single
+  parent domain, the signature of data smuggled inside DNS. Expect tuning: CDNs
+  and endpoint security products legitimately emit long names.
+references:
+  - https://attack.mitre.org/techniques/T1071/004/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 22
+    QueryName|re: '^[A-Za-z0-9+/=_-]{40,}\\.'
+  timeframe: 5m
+  count: 10
+  groupby: host
+  condition: selection
+falsepositives:
+  - CDN, antivirus reputation lookups and some cloud telemetry
+level: medium
+tags:
+  - attack.command_and_control
+  - attack.exfiltration
+  - attack.t1071.004

@@ -1,0 +1,32 @@
+title: mshta Executing a Remote or Script Payload
+id: e498dd30-5d70-48ca-3bed-tyrian000021
+status: stable
+description: >
+  Detects mshta.exe running content from a URL or an inline script handler.
+  mshta is signed by Microsoft and frequently allowlisted, which is exactly why
+  it is used to run HTA and JScript payloads.
+references:
+  - https://attack.mitre.org/techniques/T1218/005/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith: '\\mshta.exe'
+  payload:
+    CommandLine|contains:
+      - 'http://'
+      - 'https://'
+      - 'javascript:'
+      - 'vbscript:'
+      - '.hta'
+  condition: selection and payload
+falsepositives:
+  - A small number of legacy line-of-business apps still ship HTA front-ends
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.execution
+  - attack.t1218.005

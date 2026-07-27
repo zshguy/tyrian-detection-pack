@@ -1,0 +1,6 @@
+// LSASS Memory Access with Read Rights
+// Detects credential dumping by flagging process handle access to lsass.exe with read rights (Sysmon Event ID 10), excluding known security products. Tool-agnostic: catches Mimikatz, procdump, comsvcs, and custom loaders alike.
+// techniques: T1003.001   severity: high
+// source: rules/credential-access/lsass-handle-access.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where (((TargetImage endswith "\lsass.exe") and (GrantedAccess =~ "0x1010" or GrantedAccess =~ "0x1410" or GrantedAccess =~ "0x143a" or GrantedAccess =~ "0x1438")) and not ((SourceImage endswith "\MsMpEng.exe" or SourceImage endswith "\wmiprvse.exe")))

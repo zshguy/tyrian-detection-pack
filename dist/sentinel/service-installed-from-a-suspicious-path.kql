@@ -1,0 +1,6 @@
+// Service Installed From a Suspicious Path
+// Detects a new service whose binary lives in a user-writable directory or is launched through an interpreter. Services are a durable, SYSTEM-level foothold and legitimate ones almost never run out of temp.
+// techniques: T1543.003   severity: high
+// source: rules/persistence/service-creation-suspicious-path.yml  (GENERATED, do not edit by hand)
+Event
+| where (((EventID =~ "7045")) and ((ServiceFileName has_any (dynamic(["\\Temp\\", "\\Users\\Public\\", "\\AppData\\", "\\ProgramData\\", "powershell", "cmd.exe /c", "rundll32"])))))

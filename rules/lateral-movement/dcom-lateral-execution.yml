@@ -1,0 +1,35 @@
+title: Lateral Execution via DCOM Object
+id: b165aa07-2a4d-4597-08ba-tyrian000018
+status: stable
+description: >
+  Detects code launched through DCOM application objects such as
+  MMC20.Application or ShellWindows, a quieter alternative to PsExec that leaves
+  no service-creation artifact behind.
+references:
+  - https://attack.mitre.org/techniques/T1021/003/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    ParentImage|endswith:
+      - '\\mmc.exe'
+      - '\\dllhost.exe'
+  child:
+    Image|endswith:
+      - '\\cmd.exe'
+      - '\\powershell.exe'
+      - '\\mshta.exe'
+  embedding:
+    ParentCommandLine|contains:
+      - '-Embedding'
+      - 'MMC20'
+  condition: selection and child and embedding
+falsepositives:
+  - Administrators launching management consoles interactively
+level: high
+tags:
+  - attack.lateral_movement
+  - attack.t1021.003

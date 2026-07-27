@@ -1,0 +1,34 @@
+title: Domain Reconnaissance via Built-in Utilities
+id: 9f4388e6-082b-47d5-e698-tyrian000032
+status: experimental
+description: >
+  Detects the burst of net, nltest and whoami calls typical of a freshly landed
+  operator orienting inside a domain. Individually benign, so this is written as
+  a threshold rule rather than a single-event alert.
+references:
+  - https://attack.mitre.org/techniques/T1482/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    CommandLine|contains:
+      - 'net group "domain admins"'
+      - 'net localgroup administrators'
+      - 'nltest /domain_trusts'
+      - 'nltest /dclist'
+      - 'whoami /groups'
+      - 'net user /domain'
+  timeframe: 10m
+  count: 3
+  groupby: host
+  condition: selection
+falsepositives:
+  - Administrators troubleshooting, and inventory scripts
+level: medium
+tags:
+  - attack.discovery
+  - attack.t1482
+  - attack.t1087.002

@@ -1,0 +1,28 @@
+title: WMI Event Subscription Persistence
+id: 39ed2285-a2c5-41bf-8032-tyrian000026
+status: stable
+description: >
+  Detects creation of WMI event filters, consumers and bindings, a fileless
+  persistence mechanism that survives reboot and is invisible to autoruns
+  inspection of the usual locations.
+references:
+  - https://attack.mitre.org/techniques/T1546/003/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID:
+      - 19
+      - 20
+      - 21
+  condition: selection
+falsepositives:
+  - A few management products register permanent consumers; enumerate them once
+level: high
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1546.003

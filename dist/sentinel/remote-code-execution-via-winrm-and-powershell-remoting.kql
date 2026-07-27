@@ -1,0 +1,6 @@
+// Remote Code Execution via WinRM and PowerShell Remoting
+// Detects child processes of the WinRM host, which is how Enter-PSSession and Invoke-Command land code on a remote machine. Expect noise wherever fleets are managed with PSRemoting; pair this with an allowlist of admin source hosts.
+// techniques: T1021.006   severity: medium
+// source: rules/lateral-movement/winrm-remoting-child-process.yml  (GENERATED, do not edit by hand)
+Event
+| where ((ParentProcessName endswith "\\wsmprovhost.exe"))

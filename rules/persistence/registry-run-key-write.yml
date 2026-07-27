@@ -1,0 +1,27 @@
+title: Autorun Persistence via Registry Run Key
+id: 17cb0063-80a3-4bfd-6e10-tyrian000024
+status: stable
+description: >
+  Detects writes to the Run and RunOnce keys, the most common persistence
+  location on Windows. Alert value comes from what is written, so review the
+  target value rather than the key itself.
+references:
+  - https://attack.mitre.org/techniques/T1547/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    TargetObject|contains:
+      - '\\CurrentVersion\\Run\\'
+      - '\\CurrentVersion\\RunOnce\\'
+      - '\\CurrentVersion\\Policies\\Explorer\\Run\\'
+  condition: selection
+falsepositives:
+  - Software installers legitimately register autostart entries
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1547.001

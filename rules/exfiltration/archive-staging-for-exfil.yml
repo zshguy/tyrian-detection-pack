@@ -1,0 +1,37 @@
+title: Bulk Archive Creation Consistent With Collection Staging
+id: d476cc24-4c6f-40b9-2adc-tyrian000036
+status: experimental
+description: >
+  Detects command-line archive tools compressing user or share directories,
+  which is how data is staged before it leaves. Pair with an egress rule to turn
+  this into a high-confidence exfiltration signal.
+references:
+  - https://attack.mitre.org/techniques/T1560/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  tool:
+    Image|endswith:
+      - '\\7z.exe'
+      - '\\rar.exe'
+      - '\\winrar.exe'
+    CommandLine|contains:
+      - ' a '
+      - ' -hp'
+  targets:
+    CommandLine|contains:
+      - '\\Users\\'
+      - '\\Documents'
+      - '\\Desktop'
+      - '\\Shares'
+  condition: tool and targets
+falsepositives:
+  - Users legitimately archiving their own work
+level: medium
+tags:
+  - attack.collection
+  - attack.exfiltration
+  - attack.t1560.001

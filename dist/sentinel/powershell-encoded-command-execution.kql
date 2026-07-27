@@ -1,0 +1,6 @@
+// PowerShell Encoded Command Execution
+// Detects PowerShell invoked with a base64 encoded command, which is how most loaders and post-exploitation frameworks hide their payload from casual command-line review.
+// techniques: T1059.001   severity: high
+// source: rules/execution/powershell-encoded-command.yml  (GENERATED, do not edit by hand)
+Event
+| where (((NewProcessName endswith "\\powershell.exe" or NewProcessName endswith "\\pwsh.exe")) and ((CommandLine has_any (dynamic([" -enc", " -EncodedCommand", " -e ", " -ec "])))))

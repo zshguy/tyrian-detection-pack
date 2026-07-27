@@ -1,0 +1,31 @@
+title: certutil Used as a Downloader
+id: 06baff52-7f92-4aec-5d0f-tyrian000023
+status: stable
+description: >
+  Detects certutil fetching remote content or decoding base64 payloads. It is a
+  signed Microsoft binary present everywhere, which makes it a favourite
+  substitute for curl on locked-down hosts.
+references:
+  - https://attack.mitre.org/techniques/T1105/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith: '\\certutil.exe'
+  abuse:
+    CommandLine|contains:
+      - 'urlcache'
+      - 'verifyctl'
+      - 'decode'
+      - '-f http'
+  condition: selection and abuse
+falsepositives:
+  - Certificate maintenance scripts, which rarely use urlcache
+level: high
+tags:
+  - attack.command_and_control
+  - attack.defense_evasion
+  - attack.t1105

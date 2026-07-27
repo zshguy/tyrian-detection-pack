@@ -1,0 +1,28 @@
+title: AMSI Bypass Attempt in PowerShell
+id: 7d2166c9-e609-45f3-c476-tyrian000030
+status: stable
+description: >
+  Detects the well-known reflection patterns used to neuter the Antimalware
+  Scan Interface before running a payload. Matches script block content, so
+  script block logging must be enabled.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: powershell
+detection:
+  selection:
+    ScriptBlockText|contains:
+      - 'amsiInitFailed'
+      - 'AmsiUtils'
+      - 'AmsiScanBuffer'
+      - 'System.Management.Automation.AmsiUtils'
+  condition: selection
+falsepositives:
+  - Security research and detection engineering on the host itself
+level: critical
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001

@@ -1,0 +1,38 @@
+title: Database and Backup Services Stopped En Masse
+id: b265aa02-2a4d-49f7-08ba-tyrian000034
+status: stable
+description: >
+  Detects bulk service stops targeting databases, mail and backup agents.
+  Ransomware does this to unlock files held open by those services so they can
+  be encrypted too.
+references:
+  - https://attack.mitre.org/techniques/T1489/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    CommandLine|contains:
+      - 'net stop '
+      - 'sc stop '
+      - 'Stop-Service'
+  targets:
+    CommandLine|contains:
+      - 'sql'
+      - 'veeam'
+      - 'backup'
+      - 'exchange'
+      - 'vss'
+      - 'msexchange'
+  timeframe: 5m
+  count: 3
+  groupby: host
+  condition: selection and targets
+falsepositives:
+  - Patch windows and maintenance scripts
+level: critical
+tags:
+  - attack.impact
+  - attack.t1489

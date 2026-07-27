@@ -1,0 +1,6 @@
+// Remote Process Creation via WMI
+// Detects processes spawned by the WMI provider host, which is how wmic /node and Invoke-WmiMethod execute code on a remote machine. Legitimate WMI rarely spawns script interpreters or download utilities.
+// techniques: T1047   severity: high
+// source: rules/lateral-movement/wmi-remote-process-creation.yml  (GENERATED, do not edit by hand)
+Event
+| where (((ParentProcessName endswith "\\WmiPrvSE.exe")) and ((NewProcessName endswith "\\powershell.exe" or NewProcessName endswith "\\pwsh.exe" or NewProcessName endswith "\\cmd.exe" or NewProcessName endswith "\\mshta.exe" or NewProcessName endswith "\\rundll32.exe" or NewProcessName endswith "\\regsvr32.exe" or NewProcessName endswith "\\certutil.exe")))

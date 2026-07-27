@@ -1,0 +1,6 @@
+// DCSync Directory Replication From a Non-Domain-Controller
+// Detects use of the directory replication extended rights, which let a caller ask a DC for password hashes without ever touching NTDS.dit. Only domain controllers should legitimately replicate, so this keys on caller identity.
+// techniques: T1003.006   severity: critical
+// source: rules/credential-access/dcsync-replication-rights.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where (((EventID =~ "4662") and (Properties has_any (dynamic(["1131f6aa-9c07-11d1-f79f-00c04fc2dcd2", "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2", "89e95b76-444d-4c62-991a-0facbeda640c"])))) and not ((SubjectUserName endswith "$")))

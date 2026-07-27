@@ -1,0 +1,28 @@
+title: Backup and Recovery Destruction Before Encryption
+id: a15499f1-193c-48e6-f7a9-tyrian000033
+status: stable
+description: >
+  Detects deletion of backup catalogs and disabling of Windows recovery, which
+  ransomware does immediately before encrypting so victims cannot roll back.
+  This usually fires minutes ahead of the encryption itself.
+references:
+  - https://attack.mitre.org/techniques/T1490/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  wbadmin:
+    CommandLine|contains: 'wbadmin delete'
+  bcdedit:
+    CommandLine|contains:
+      - 'recoveryenabled no'
+      - 'bootstatuspolicy ignoreallfailures'
+  condition: 1 of them
+falsepositives:
+  - Backup retention maintenance, which should run from a known scheduled task
+level: critical
+tags:
+  - attack.impact
+  - attack.t1490

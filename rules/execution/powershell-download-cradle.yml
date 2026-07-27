@@ -1,0 +1,41 @@
+title: PowerShell Download Cradle
+id: d387cc29-4c6f-47b9-2adc-tyrian000020
+status: stable
+description: >
+  Detects the in-memory download-and-execute patterns used to stage a payload
+  without writing it to disk, covering both the WebClient and Invoke-WebRequest
+  forms alongside an execution primitive.
+references:
+  - https://attack.mitre.org/techniques/T1059/001/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith:
+      - '\\powershell.exe'
+      - '\\pwsh.exe'
+  download:
+    CommandLine|contains:
+      - 'DownloadString'
+      - 'DownloadFile'
+      - 'Invoke-WebRequest'
+      - 'Net.WebClient'
+      - 'iwr '
+      - 'curl '
+  execute:
+    CommandLine|contains:
+      - 'IEX'
+      - 'Invoke-Expression'
+      - 'iex('
+      - '| iex'
+  condition: selection and download and execute
+falsepositives:
+  - Package bootstrap scripts, which should originate from known hosts
+level: high
+tags:
+  - attack.execution
+  - attack.command_and_control
+  - attack.t1059.001

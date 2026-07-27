@@ -1,0 +1,6 @@
+// LSASS Dump via comsvcs.dll MiniDump
+// Detects the living-off-the-land LSASS dump that calls MiniDump inside comsvcs.dll through rundll32, avoiding procdump and mimikatz binaries entirely. The ordinal form is the usual giveaway.
+// techniques: T1003.001   severity: critical
+// source: rules/credential-access/lsass-dump-comsvcs.yml  (GENERATED, do not edit by hand)
+Event
+| where (((NewProcessName endswith "\\rundll32.exe") and (CommandLine contains "comsvcs")) and ((CommandLine contains "MiniDump" or CommandLine contains "#24")))

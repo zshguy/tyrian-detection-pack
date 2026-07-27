@@ -1,0 +1,6 @@
+// mshta Executing a Remote or Script Payload
+// Detects mshta.exe running content from a URL or an inline script handler. mshta is signed by Microsoft and frequently allowlisted, which is exactly why it is used to run HTA and JScript payloads.
+// techniques: T1218.005   severity: high
+// source: rules/execution/mshta-remote-payload.yml  (GENERATED, do not edit by hand)
+Event
+| where (((NewProcessName endswith "\\mshta.exe")) and ((CommandLine has_any (dynamic(["http://", "https://", "javascript:", "vbscript:", ".hta"])))))

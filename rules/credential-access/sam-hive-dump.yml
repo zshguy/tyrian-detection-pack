@@ -1,0 +1,30 @@
+title: SAM and SYSTEM Registry Hive Dump
+id: 5d0f44a1-c4e7-4f31-a254-tyrian000012
+status: stable
+description: >
+  Detects reg.exe saving the SAM, SYSTEM or SECURITY hives to disk. Together
+  those give local account hashes plus the boot key needed to decrypt them, and
+  it is a standard first move after landing on a host.
+references:
+  - https://attack.mitre.org/techniques/T1003/002/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith: '\\reg.exe'
+    CommandLine|contains: 'save'
+  hives:
+    CommandLine|contains:
+      - 'hklm\\sam'
+      - 'hklm\\system'
+      - 'hklm\\security'
+  condition: selection and hives
+falsepositives:
+  - Backup tooling that exports hives, which should run from a known path
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003.002

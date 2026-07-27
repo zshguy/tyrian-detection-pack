@@ -1,0 +1,26 @@
+title: WDigest UseLogonCredential Enabled (Cleartext Credential Staging)
+id: 7f2166c3-e609-4153-c476-tyrian000014
+status: stable
+description: >
+  Detects the registry change that forces Windows to keep cleartext credentials
+  in LSASS memory again. Attackers set this, wait for users to re-authenticate,
+  then dump. The write itself is the early warning, well before the dump.
+references:
+  - https://attack.mitre.org/techniques/T1112/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    TargetObject|endswith: '\\WDigest\\UseLogonCredential'
+    Details: 'DWORD (0x00000001)'
+  condition: selection
+falsepositives:
+  - Legacy applications that genuinely require WDigest, which should be documented
+level: critical
+tags:
+  - attack.credential_access
+  - attack.defense_evasion
+  - attack.t1112

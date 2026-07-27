@@ -1,0 +1,29 @@
+title: regsvr32 Scriptlet Execution (Squiblydoo)
+id: f5a9ee41-6e81-49db-4cfe-tyrian000022
+status: stable
+description: >
+  Detects the Squiblydoo pattern where regsvr32 loads a remote scriptlet with
+  /i and scrobj.dll, executing code through a signed binary and bypassing
+  application allowlisting.
+references:
+  - https://attack.mitre.org/techniques/T1218/010/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith: '\\regsvr32.exe'
+  scriptlet:
+    CommandLine|contains:
+      - 'scrobj'
+      - '/i:http'
+      - '.sct'
+  condition: selection and scriptlet
+falsepositives:
+  - Rare; legitimate COM registration does not fetch remote scriptlets
+level: critical
+tags:
+  - attack.defense_evasion
+  - attack.t1218.010

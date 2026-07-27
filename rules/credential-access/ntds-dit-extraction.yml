@@ -1,0 +1,29 @@
+title: NTDS.dit Extraction via ntdsutil or Shadow Copy
+id: 4c9e33f0-b3d6-4e20-9143-tyrian000011
+status: stable
+description: >
+  Detects the two common ways the Active Directory database leaves a domain
+  controller: an ntdsutil IFM media creation, or a copy of NTDS.dit out of a
+  volume shadow copy. Either yields every domain hash for offline cracking.
+references:
+  - https://attack.mitre.org/techniques/T1003/003/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  ntdsutil:
+    Image|endswith: '\\ntdsutil.exe'
+    CommandLine|contains|all:
+      - 'create'
+      - 'ifm'
+  ditcopy:
+    CommandLine|contains: 'ntds.dit'
+  condition: 1 of them
+falsepositives:
+  - Documented disaster-recovery or forensic acquisition
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003.003

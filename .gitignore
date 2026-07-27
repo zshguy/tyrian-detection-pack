@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+
+# The repo root ignores dist/ (it means build output for the Next.js apps).
+# Here dist/ is a deliverable: the compiled Wazuh/Splunk/Sentinel rules are
+# committed so the pack is usable without running the compiler. Re-include it.
+!dist/
+!dist/**

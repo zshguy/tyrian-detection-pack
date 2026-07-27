@@ -1,0 +1,6 @@
+// Kerberoasting via RC4 Service Ticket Request
+// Detects Kerberoasting by flagging RC4-encrypted (etype 0x17) TGS requests for user-account SPNs. Roasting tools force RC4 because it cracks far faster than AES.
+// techniques: T1558.003   severity: high
+// source: rules/credential-access/kerberoasting-rc4-tgs.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where ((((EventID =~ "4769") and (TicketEncryptionType =~ "0x17") and (TicketOptions =~ "0x40810000")) and not ((ServiceName endswith "$"))) and not ((ServiceName =~ "krbtgt")))

@@ -1,0 +1,31 @@
+title: DCSync Directory Replication From a Non-Domain-Controller
+id: 3b8d22ef-a2c5-4d1f-8032-tyrian000010
+status: stable
+description: >
+  Detects use of the directory replication extended rights, which let a caller
+  ask a DC for password hashes without ever touching NTDS.dit. Only domain
+  controllers should legitimately replicate, so this keys on caller identity.
+references:
+  - https://attack.mitre.org/techniques/T1003/006/
+author: Tyrian
+date: 2026/07/27
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4662
+    Properties|contains:
+      - '1131f6aa-9c07-11d1-f79f-00c04fc2dcd2'
+      - '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'
+      - '89e95b76-444d-4c62-991a-0facbeda640c'
+  filter_machine:
+    SubjectUserName|endswith: '$'
+  condition: selection and not filter_machine
+falsepositives:
+  - Azure AD Connect / MSOL sync accounts, which should be allowlisted by name
+  - Genuine DC promotion, which is rare and change-controlled
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003.006
