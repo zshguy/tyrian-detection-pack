@@ -1,0 +1,23 @@
+name: Missed detection
+description: A technique you ran that nothing here caught
+title: "[MISS] "
+labels: ["coverage"]
+body:
+  - type: input
+    id: technique
+    attributes:
+      label: ATT&CK technique
+      description: e.g. T1055.012 Process Hollowing
+    validations:
+      required: true
+  - type: textarea
+    id: telemetry
+    attributes:
+      label: What the telemetry looked like
+      description: The events it produced, if you have them. Even a rough description helps.
+      render: shell
+  - type: input
+    id: source
+    attributes:
+      label: Log source
+      description: e.g. Sysmon EID 8, Security 4688, auditd

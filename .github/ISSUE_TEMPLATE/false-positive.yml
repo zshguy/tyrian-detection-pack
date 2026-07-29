@@ -1,0 +1,43 @@
+name: False positive
+description: A rule fired on something benign in your environment
+title: "[FP] "
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most useful issue you can open. Every rule here was tuned against
+        one lab's telemetry, which is a sample size of one. Your environment is the
+        thing that makes a rule real.
+  - type: input
+    id: rule
+    attributes:
+      label: Which rule
+      description: File path or rule id, e.g. rules/execution/powershell-encoded-command.yml
+    validations:
+      required: true
+  - type: dropdown
+    id: siem
+    attributes:
+      label: SIEM
+      options: [Wazuh, Splunk, Microsoft Sentinel, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: event
+    attributes:
+      label: What triggered it
+      description: The event or command line that fired the rule. Redact anything sensitive.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: volume
+    attributes:
+      label: Roughly how often
+      description: e.g. "40 times a day across 300 endpoints"
+  - type: textarea
+    id: context
+    attributes:
+      label: What was actually happening
+      description: The legitimate activity behind it, if you know. This is what tells us how to exclude it.
