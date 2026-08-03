@@ -30,6 +30,11 @@ detection:
   count: 3
   groupby: host
   condition: selection and targets
+validation:
+  atomic: T1489
+  fire: |-
+    net stop MSSQLSERVER /y
+    net stop VeeamBackupSvc /y
 falsepositives:
   - Patch windows and maintenance scripts
 level: critical

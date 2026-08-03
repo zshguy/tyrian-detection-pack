@@ -1,0 +1,36 @@
+title: Resource-Based Constrained Delegation Configured on an Object
+id: 9d3e6f4c-b05d-4180-ca74-tyrian000055
+status: experimental
+description: >
+  Detects a write to msDS-AllowedToActOnBehalfOfOtherIdentity. Whoever controls
+  that attribute on a computer object can tell it to accept S4U requests from an
+  account they own, then impersonate any user to that machine, including a domain
+  administrator. Because a standard user can create computer accounts by default
+  (ms-DS-MachineAccountQuota), RBCD is a routine path from "write access to one
+  object" to "local system on it".
+references:
+  - https://attack.mitre.org/techniques/T1098/
+  - https://attack.mitre.org/techniques/T1134/001/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 5136
+    AttributeLDAPDisplayName: 'msDS-AllowedToActOnBehalfOfOtherIdentity'
+  condition: selection
+validation:
+  atomic: T1098
+  fire: |-
+    Set-ADComputer TARGET$ -PrincipalsAllowedToDelegateToAccount ATTACKER$
+    rbcd.py -delegate-to TARGET$ -delegate-from ATTACKER$ -action write domain/user:pass
+falsepositives:
+  - Genuine delegation design changes, which should be rare and change-controlled
+level: critical
+tags:
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1098
+  - attack.t1134.001

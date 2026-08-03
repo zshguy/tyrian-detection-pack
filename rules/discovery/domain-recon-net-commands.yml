@@ -25,6 +25,12 @@ detection:
   count: 3
   groupby: host
   condition: selection
+validation:
+  atomic: T1087.002
+  fire: |-
+    net group "domain admins" /domain
+    net user /domain
+    nltest /dclist:<domain>
 falsepositives:
   - Administrators troubleshooting, and inventory scripts
 level: medium

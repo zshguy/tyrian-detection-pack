@@ -1,0 +1,49 @@
+title: Remote Thread Created in Another Process
+id: 04a5d6b3-27c4-48f7-d3eb-tyrian000062
+status: experimental
+description: >
+  Detects a thread created in a process the caller does not own, with the start
+  address resolving into a module associated with injection or into no module at
+  all. Injecting into a signed, expected process is how an implant inherits its
+  network reputation and survives its own dropper exiting.
+references:
+  - https://attack.mitre.org/techniques/T1055/
+  - https://attack.mitre.org/techniques/T1055/003/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 8   # CreateRemoteThread
+  sensitive_target:
+    TargetImage|endswith:
+      - '\lsass.exe'
+      - '\explorer.exe'
+      - '\svchost.exe'
+      - '\winlogon.exe'
+      - '\notepad.exe'
+      - '\rundll32.exe'
+  filter_known:
+    SourceImage|endswith:
+      - '\csrss.exe'
+      - '\wininit.exe'
+      - '\services.exe'
+      - '\MsMpEng.exe'
+  condition: selection and sensitive_target and not filter_known
+validation:
+  atomic: T1055
+  fire: |-
+    Invoke-Mimikatz style injection, or any tool calling OpenProcess +
+    VirtualAllocEx + WriteProcessMemory + CreateRemoteThread against notepad.exe.
+    Atomic Red Team T1055 includes a minimal C# injector for this.
+falsepositives:
+  - Endpoint security products, which legitimately inject to hook userland APIs
+  - Application compatibility shims and some installers
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.privilege_escalation
+  - attack.t1055
+  - attack.t1055.003

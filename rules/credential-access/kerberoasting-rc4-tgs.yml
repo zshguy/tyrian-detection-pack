@@ -22,6 +22,11 @@ detection:
   filter_krbtgt:
     ServiceName: 'krbtgt'
   condition: selection and not filter_machine and not filter_krbtgt
+validation:
+  atomic: T1558.003
+  fire: |-
+    Rubeus.exe kerberoast /rc4opsec
+    GetUserSPNs.py -request <domain>/<user>
 falsepositives:
   - Legacy applications or hosts that still negotiate RC4 Kerberos
 level: high

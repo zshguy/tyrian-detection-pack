@@ -22,6 +22,11 @@ detection:
   filter_machine:
     SubjectUserName|endswith: '$'
   condition: selection and not filter_machine
+validation:
+  atomic: T1003.006
+  fire: |-
+    mimikatz.exe "lsadump::dcsync /user:krbtgt" exit
+    secretsdump.py -just-dc <domain>/<user>@<dc>
 falsepositives:
   - Azure AD Connect / MSOL sync accounts, which should be allowlisted by name
   - Genuine DC promotion, which is rare and change-controlled

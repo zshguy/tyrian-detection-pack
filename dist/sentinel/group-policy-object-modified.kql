@@ -1,0 +1,9 @@
+// Group Policy Object Modified
+// Detects modification of a groupPolicyContainer object or a write into the SYSVOL Policies share. A GPO is a distribution channel to every machine it links to, so editing one that applies broadly turns a single compromised account into code execution across the estate, delivered by the domain's own tooling.
+// techniques: T1484.001   severity: high   status: experimental
+// validate: Atomic Red Team T1484.001
+//   New-GPO -Name TyrianTest | New-GPLink -Target "DC=tyrian,DC=lab"
+//   SharpGPOAbuse.exe --AddComputerTask --GPOName "Default Domain Policy" --Command cmd.exe --Arguments "/c whoami"
+// source: rules/privilege-escalation/group-policy-object-modified.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where (((EventID =~ "5136") and (ObjectClass =~ "groupPolicyContainer")) or ((EventID =~ "5145") and (ShareName contains "SYSVOL") and (RelativeTargetName contains "Policies")))

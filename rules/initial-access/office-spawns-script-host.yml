@@ -28,6 +28,11 @@ detection:
       - '\mshta.exe'
       - '\rundll32.exe'
   condition: selection
+validation:
+  atomic: T1566.001
+  fire: |-
+    Open a macro-enabled document whose AutoOpen runs Shell("cmd.exe /c ..."),
+    so WINWORD.EXE becomes the parent of cmd.exe.
 falsepositives:
   - Rare legitimate Office add-ins; baseline and exclude specific signed tools
 level: high

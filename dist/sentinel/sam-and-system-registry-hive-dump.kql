@@ -1,6 +1,9 @@
 // SAM and SYSTEM Registry Hive Dump
 // Detects reg.exe saving the SAM, SYSTEM or SECURITY hives to disk. Together those give local account hashes plus the boot key needed to decrypt them, and it is a standard first move after landing on a host.
-// techniques: T1003.002   severity: critical
+// techniques: T1003.002   severity: critical   status: stable
+// validate: Atomic Red Team T1003.002
+//   reg save HKLM\SAM C:\Windows\Temp\sam.hiv
+//   reg save HKLM\SYSTEM C:\Windows\Temp\sys.hiv
 // source: rules/credential-access/sam-hive-dump.yml  (GENERATED, do not edit by hand)
 Event
 | where (((NewProcessName endswith "\\reg.exe") and (CommandLine contains "save")) and ((CommandLine has_any (dynamic(["hklm\\sam", "hklm\\system", "hklm\\security"])))))

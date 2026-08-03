@@ -20,6 +20,11 @@ detection:
       - 'recoveryenabled no'
       - 'bootstatuspolicy ignoreallfailures'
   condition: 1 of them
+validation:
+  atomic: T1490
+  fire: |-
+    wbadmin delete catalog -quiet
+    bcdedit /set {default} recoveryenabled No
 falsepositives:
   - Backup retention maintenance, which should run from a known scheduled task
 level: critical

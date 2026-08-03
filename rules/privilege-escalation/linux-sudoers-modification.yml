@@ -1,0 +1,31 @@
+title: Linux sudoers Policy Modified
+id: e283b497-05a1-46d8-f1c9-tyrian000044
+status: experimental
+description: >
+  Detects changes to /etc/sudoers or a drop-in under /etc/sudoers.d. A single
+  NOPASSWD ALL line converts a foothold into permanent root that survives reboots
+  and looks legitimate to anyone not diffing the file. This is a small, high-value
+  surface: alert on every change and reconcile against your change record.
+references:
+  - https://attack.mitre.org/techniques/T1548/003/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_sudoers'
+  condition: selection
+validation:
+  atomic: T1548.003
+  fire: |-
+    echo 'attacker ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/tyrian-test
+falsepositives:
+  - Configuration management distributing sudo policy
+  - Package installs that drop a sudoers.d file
+level: high
+tags:
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1548.003

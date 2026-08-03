@@ -1,0 +1,42 @@
+title: Linux Container Escape Attempt
+id: 26c7f8db-49e5-4a18-350d-tyrian000048
+status: experimental
+description: >
+  Detects the standard routes out of a container onto its host: nsenter against
+  PID 1's namespaces, a container started with --privileged, and any process
+  handling the Docker socket. A mounted docker.sock is a full host takeover
+  primitive, because whoever can talk to it can start a privileged container.
+references:
+  - https://attack.mitre.org/techniques/T1611/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  nsenter_host_ns:
+    AuditKey: 'tyrian_exec'
+    Image|endswith: '/nsenter'
+    ExecveA1|contains: '--target'
+  docker_socket:
+    AuditKey: 'tyrian_exec'
+    ExecveA2|contains: 'docker.sock'
+  privileged_container:
+    AuditKey: 'tyrian_exec'
+    Image|endswith:
+      - '/docker'
+      - '/podman'
+    ExecveA2|contains: '--privileged'
+  condition: nsenter_host_ns or docker_socket or privileged_container
+validation:
+  atomic: T1611
+  fire: |-
+    nsenter --target 1 --mount --uts --ipc --net --pid -- /bin/bash
+    docker run --rm --privileged -v /:/host alpine chroot /host sh
+falsepositives:
+  - CI runners and build tooling that legitimately need privileged containers
+  - Monitoring agents that read the Docker socket by design
+level: critical
+tags:
+  - attack.privilege_escalation
+  - attack.t1611

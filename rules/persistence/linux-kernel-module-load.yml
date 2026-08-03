@@ -1,0 +1,34 @@
+title: Linux Kernel Module Loaded
+id: 59fa2b0e-7c18-4d4b-6830-tyrian000051
+status: experimental
+description: >
+  Detects insmod/modprobe execution and the init_module syscall. A loadable kernel
+  module runs in ring 0, which puts it beyond the reach of every userland control
+  on the host, including the audit daemon that reported it. Module loads are rare
+  and predictable outside of driver updates, so the baseline is small enough to
+  review by hand.
+references:
+  - https://attack.mitre.org/techniques/T1547/006/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_modules'
+  condition: selection
+validation:
+  atomic: T1547.006
+  fire: |-
+    modprobe dummy
+    insmod ./tyrian-test.ko
+falsepositives:
+  - Driver and kernel package updates
+  - Hardware hotplug loading a module on demand
+  - Container runtimes loading overlay or netfilter modules at start
+level: medium
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1547.006

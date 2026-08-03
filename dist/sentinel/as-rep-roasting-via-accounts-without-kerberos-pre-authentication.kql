@@ -1,6 +1,9 @@
 // AS-REP Roasting via Accounts Without Kerberos Pre-Authentication
 // Detects Kerberos AS-REQ activity for accounts that have pre-authentication disabled. The KDC hands back an AS-REP encrypted with a key derived from the account password, which is then cracked offline. Deliberate use of DONT_REQ_PREAUTH is rare, so volume here is usually roasting.
-// techniques: T1558.004   severity: high
+// techniques: T1558.004   severity: high   status: stable
+// validate: Atomic Red Team T1558.004
+//   Rubeus.exe asreproast /format:hashcat
+//   GetNPUsers.py -dc-ip <dc> <domain>/ -usersfile users.txt
 // source: rules/credential-access/asrep-roasting-no-preauth.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where (((EventID =~ "4768") and (TicketOptions =~ "0x40810010") and (TicketEncryptionType =~ "0x17" or TicketEncryptionType =~ "0x18")) and not ((TargetUserName endswith "$")))

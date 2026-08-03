@@ -1,0 +1,9 @@
+// rundll32 Loading a Payload From a Suspicious Location
+// Detects rundll32 executing a DLL from a user-writable directory, running JavaScript through its scriptlet handler, or launching with no arguments at all. rundll32 is signed by Microsoft and present everywhere, so an implant that lives inside it inherits a trusted image name. A no-argument rundll32 is a particularly reliable tell, since it does nothing useful and is a common injection host.
+// techniques: T1218.011   severity: high   status: experimental
+// validate: Atomic Red Team T1218.011
+//   rundll32.exe javascript:"\..\mshtml,RunHTMLApplication ";alert('tyrian')
+//   rundll32.exe C:\Windows\Temp\payload.dll,EntryPoint
+// source: rules/defense-evasion/rundll32-suspicious-invocation.yml  (GENERATED, do not edit by hand)
+Event
+| where (((NewProcessName endswith "\rundll32.exe") and (CommandLine has_any (dynamic(["\Users\Public\", "\AppData\Local\Temp\", "\Windows\Temp\", "\ProgramData\", "C:\Users\"])))) or ((NewProcessName endswith "\rundll32.exe") and (CommandLine has_any (dynamic(["javascript:", "vbscript:", "mshtml,RunHTMLApplication", "url.dll,OpenURL", "shell32.dll,ShellExec_RunDLL"])))))

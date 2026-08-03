@@ -27,6 +27,11 @@ detection:
       - '-Embedding'
       - 'MMC20'
   condition: selection and child and embedding
+validation:
+  atomic: T1021.003
+  fire: |-
+    $c=[activator]::CreateInstance([type]::GetTypeFromProgID('MMC20.Application','<host>'))
+    $c.Document.ActiveView.ExecuteShellCommand('cmd.exe',$null,'/c calc','7')
 falsepositives:
   - Administrators launching management consoles interactively
 level: high

@@ -1,0 +1,45 @@
+title: File Transfer via BITS
+id: 37d809e6-5af7-4b26-063e-tyrian000065
+status: experimental
+description: >
+  Detects bitsadmin or the PowerShell BITS cmdlets being used to move a file. The
+  Background Intelligent Transfer Service is a signed Windows component that
+  downloads on behalf of a caller, so the traffic comes from a trusted process, the
+  job survives reboots, and the transfer continues after the calling process exits.
+  That combination is why it is a durable download and persistence primitive.
+references:
+  - https://attack.mitre.org/techniques/T1197/
+  - https://attack.mitre.org/techniques/T1105/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  bitsadmin_cli:
+    Image|endswith: '\bitsadmin.exe'
+    CommandLine|contains:
+      - '/transfer'
+      - '/addfile'
+      - '/setnotifycmdline'
+  powershell_bits:
+    CommandLine|contains|all:
+      - 'Start-BitsTransfer'
+      - '-Source'
+  condition: bitsadmin_cli or powershell_bits
+validation:
+  atomic: T1197
+  fire: |-
+    bitsadmin /transfer tyriantest /download /priority high http://127.0.0.1/a.txt C:\Windows\Temp\a.txt
+    Start-BitsTransfer -Source http://127.0.0.1/a.txt -Destination C:\Windows\Temp\a.txt
+falsepositives:
+  - Windows Update and other Microsoft components use BITS internally, though
+    rarely through bitsadmin.exe on the command line
+  - Some software updaters
+level: medium
+tags:
+  - attack.command_and_control
+  - attack.defense_evasion
+  - attack.persistence
+  - attack.t1197
+  - attack.t1105

@@ -1,0 +1,9 @@
+// DCShadow Rogue Domain Controller Registration
+// Detects registration of a new nTDSDSA object or an SPN change that makes a host look like a domain controller. DCShadow registers a rogue DC just long enough to push a directory replication, which writes attacker-chosen attributes into AD without generating the directory-change events a normal write would. Catching the registration is the reliable way to see it, because the changes themselves are designed not to be logged.
+// techniques: T1207   severity: critical   status: experimental
+// validate: Atomic Red Team T1207
+//   mimikatz "lsadump::dcshadow /object:target /attribute:primaryGroupID /value:512"
+//   mimikatz "lsadump::dcshadow /push"
+// source: rules/defense-evasion/dcshadow-rogue-domain-controller.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where (((EventID =~ "5137") and (ObjectClass =~ "nTDSDSA")) or ((EventID =~ "5136") and (AttributeLDAPDisplayName =~ "servicePrincipalName") and (AttributeValue contains "GC/" or AttributeValue contains "E3514235-4B06-11D1-AB04-00C04FC2DCD2")))

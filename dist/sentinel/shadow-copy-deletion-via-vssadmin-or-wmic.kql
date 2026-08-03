@@ -1,6 +1,8 @@
 // Shadow Copy Deletion via VSSAdmin or WMIC
 // Detects the reliable ransomware precursor of deleting volume shadow copies to prevent rollback. Legitimate software almost never does this; ransomware almost always does, just before mass encryption (T1486 via T1490).
-// techniques: T1486,T1490   severity: high
+// techniques: T1486,T1490   severity: high   status: stable
+// validate: Atomic Red Team T1490
+//   vssadmin.exe delete shadows /all /quiet
 // source: rules/impact/ransomware-shadowcopy-deletion.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where ((((NewProcessName endswith "\vssadmin.exe") and (CommandLine contains "delete" and CommandLine contains "shadows")) or ((NewProcessName endswith "\wmic.exe") and (CommandLine contains "shadowcopy delete"))) or ((CommandLine contains "Get-WmiObject" and CommandLine contains "Win32_ShadowCopy" and CommandLine contains "Delete")))

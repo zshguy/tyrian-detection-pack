@@ -21,6 +21,10 @@ detection:
       - 'Invoke-BloodHound'
       - 'bloodhound.py'
   condition: selection
+validation:
+  atomic: T1087.002
+  fire: |-
+    SharpHound.exe -c All --zipfilename loot
 falsepositives:
   - Authorised assessments; correlate with your engagement calendar
 level: high

@@ -21,6 +21,10 @@ detection:
   ditcopy:
     CommandLine|contains: 'ntds.dit'
   condition: 1 of them
+validation:
+  atomic: T1003.003
+  fire: |-
+    ntdsutil "ac i ntds" "ifm" "create full C:\Windows\Temp\ifm" q q
 falsepositives:
   - Documented disaster-recovery or forensic acquisition
 level: critical

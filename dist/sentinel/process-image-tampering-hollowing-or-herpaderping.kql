@@ -1,0 +1,10 @@
+// Process Image Tampering (Hollowing or Herpaderping)
+// Detects Sysmon's ProcessTampering event, raised when a process image on disk no longer matches what is mapped in memory. That mismatch is the defining artefact of process hollowing, herpaderping and doppelganging, where a legitimate binary is started suspended and its image replaced before execution resumes. Very few legitimate programs produce it.
+// techniques: T1055.012   severity: high   status: experimental
+// validate: Atomic Red Team T1055.012
+//   Run any hollowing proof of concept that starts a suspended process
+//   (for example svchost.exe), unmaps its section and writes a replacement image.
+//   Requires Sysmon 13 or later for event ID 25.
+// source: rules/defense-evasion/process-image-tampering-hollowing.yml  (GENERATED, do not edit by hand)
+Event
+| where ((EventID =~ "25"))

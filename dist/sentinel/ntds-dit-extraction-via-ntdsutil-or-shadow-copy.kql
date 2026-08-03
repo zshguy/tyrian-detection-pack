@@ -1,6 +1,8 @@
 // NTDS.dit Extraction via ntdsutil or Shadow Copy
 // Detects the two common ways the Active Directory database leaves a domain controller: an ntdsutil IFM media creation, or a copy of NTDS.dit out of a volume shadow copy. Either yields every domain hash for offline cracking.
-// techniques: T1003.003   severity: critical
+// techniques: T1003.003   severity: critical   status: stable
+// validate: Atomic Red Team T1003.003
+//   ntdsutil "ac i ntds" "ifm" "create full C:\Windows\Temp\ifm" q q
 // source: rules/credential-access/ntds-dit-extraction.yml  (GENERATED, do not edit by hand)
 Event
 | where (((NewProcessName endswith "\\ntdsutil.exe") and (CommandLine contains "create" and CommandLine contains "ifm")) or ((CommandLine contains "ntds.dit")))

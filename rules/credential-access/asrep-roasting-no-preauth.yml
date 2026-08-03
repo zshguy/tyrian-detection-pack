@@ -23,6 +23,11 @@ detection:
   filter_machine:
     TargetUserName|endswith: '$'
   condition: selection and not filter_machine
+validation:
+  atomic: T1558.004
+  fire: |-
+    Rubeus.exe asreproast /format:hashcat
+    GetNPUsers.py -dc-ip <dc> <domain>/ -usersfile users.txt
 falsepositives:
   - Legacy UNIX or appliance accounts intentionally configured without pre-auth
 level: high

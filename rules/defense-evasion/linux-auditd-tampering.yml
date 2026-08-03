@@ -1,0 +1,37 @@
+title: Linux Audit Subsystem Tampered With
+id: 15b6e7ca-38d4-4907-24fc-tyrian000047
+status: experimental
+description: >
+  Detects execution of auditctl or auditd and changes to /etc/audit. Disabling the
+  audit daemon is the natural first move for an attacker who realises they are
+  being recorded, and it blinds every other Linux rule in this pack. Treat a stop
+  or ruleset flush that you cannot tie to a change ticket as an incident.
+references:
+  - https://attack.mitre.org/techniques/T1562/001/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  config_or_binary:
+    AuditKey: 'tyrian_auditcfg'
+  service_stop:
+    AuditKey: 'tyrian_exec'
+    Image|endswith:
+      - '/systemctl'
+      - '/service'
+    ExecveA2|contains: 'audit'
+  condition: config_or_binary or service_stop
+validation:
+  atomic: T1562.001
+  fire: |-
+    auditctl -e 0
+    systemctl stop auditd
+falsepositives:
+  - Legitimate audit policy deployment by configuration management
+  - Patching that restarts auditd
+level: critical
+tags:
+  - attack.defense_evasion
+  - attack.t1562.001

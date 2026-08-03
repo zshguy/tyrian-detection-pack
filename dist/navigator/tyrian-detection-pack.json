@@ -1,0 +1,1149 @@
+{
+  "name": "Tyrian Detection Pack",
+  "versions": {
+    "attack": "16",
+    "navigator": "5.1.0",
+    "layer": "4.5"
+  },
+  "domain": "enterprise-attack",
+  "description": "67 open-source Sigma detections covering 64 techniques, compiled to Wazuh, Splunk and Sentinel. https://github.com/zshguy/tyrian-detection-pack",
+  "filters": {
+    "platforms": [
+      "Windows",
+      "Linux"
+    ]
+  },
+  "sorting": 0,
+  "layout": {
+    "layout": "side",
+    "showID": true,
+    "showName": true
+  },
+  "hideDisabled": false,
+  "techniques": [
+    {
+      "techniqueID": "T1003.001",
+      "score": 2,
+      "comment": "LSASS Dump via comsvcs.dll MiniDump [stable, critical]\nLSASS Memory Access with Read Rights [stable, high]\n\n2 of 2 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "2"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1003.002",
+      "score": 1,
+      "comment": "SAM and SYSTEM Registry Hive Dump [stable, critical]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1003.003",
+      "score": 1,
+      "comment": "NTDS.dit Extraction via ntdsutil or Shadow Copy [stable, critical]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1003.006",
+      "score": 1,
+      "comment": "DCSync Directory Replication From a Non-Domain-Controller [stable, critical]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1003.008",
+      "score": 1,
+      "comment": "Linux Password Hash File Accessed by a User [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1021.002",
+      "score": 2,
+      "comment": "PsExec-style Remote Service Installation [stable, high]\nWrite to an Administrative Share [stable, high]\n\n2 of 2 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "2"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1021.003",
+      "score": 1,
+      "comment": "Lateral Execution via DCOM Object [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1021.006",
+      "score": 1,
+      "comment": "Remote Code Execution via WinRM and PowerShell Remoting [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1036.005",
+      "score": 1,
+      "comment": "Linux Execution From a World-Writable Directory [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1047",
+      "score": 1,
+      "comment": "Remote Process Creation via WMI [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1053.003",
+      "score": 1,
+      "comment": "Linux Scheduled Task Persistence via cron [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1053.005",
+      "score": 1,
+      "comment": "Suspicious Scheduled Task Creation [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1055",
+      "score": 2,
+      "comment": "Cobalt Strike Default Named Pipe [experimental, high]\nRemote Thread Created in Another Process [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1055.003",
+      "score": 1,
+      "comment": "Remote Thread Created in Another Process [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1055.012",
+      "score": 1,
+      "comment": "Process Image Tampering (Hollowing or Herpaderping) [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1059",
+      "score": 1,
+      "comment": "Office Application Spawns a Script Interpreter [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1059.001",
+      "score": 2,
+      "comment": "PowerShell Download Cradle [stable, high]\nPowerShell Encoded Command Execution [stable, high]\n\n2 of 2 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "2"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1059.004",
+      "score": 2,
+      "comment": "Linux Remote Payload Piped Directly Into a Shell [experimental, medium]\nLinux Reverse Shell Execution [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1068",
+      "score": 1,
+      "comment": "Known Vulnerable Driver Loaded (BYOVD) [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1070.001",
+      "score": 1,
+      "comment": "Security or System Event Log Cleared [stable, critical]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1070.002",
+      "score": 1,
+      "comment": "Linux Log Files Deleted From /var/log [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1071",
+      "score": 1,
+      "comment": "Cobalt Strike Default Named Pipe [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1071.004",
+      "score": 1,
+      "comment": "Possible DNS Tunneling via Abnormally Long Queries [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1082",
+      "score": 1,
+      "comment": "Linux Host Enumeration Burst [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1087.001",
+      "score": 1,
+      "comment": "Linux Host Enumeration Burst [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1087.002",
+      "score": 2,
+      "comment": "Active Directory Collection Consistent With SharpHound [stable, high]\nDomain Reconnaissance via Built-in Utilities [experimental, medium]\n\n1 of 2 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1098",
+      "score": 6,
+      "comment": "Shadow Credentials Added via msDS-KeyCredentialLink [experimental, critical]\nAdminSDHolder Container Modified [experimental, critical]\nLinux Account Created or Added to a Privileged Group [experimental, high]\nAccount Added to a Privileged Local or Domain Group [stable, high]\nResource-Based Constrained Delegation Configured on an Object [experimental, critical]\nUnconstrained or Constrained Delegation Enabled on an Account [experimental, high]\n\n1 of 6 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "6"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1098.004",
+      "score": 1,
+      "comment": "Linux SSH authorized_keys Modified [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1105",
+      "score": 3,
+      "comment": "File Transfer via BITS [experimental, medium]\ncertutil Used as a Downloader [stable, high]\nLinux Remote Payload Piped Directly Into a Shell [experimental, medium]\n\n1 of 3 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "3"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1110.003",
+      "score": 1,
+      "comment": "Password Spraying, Many Accounts from One Source [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1112",
+      "score": 1,
+      "comment": "WDigest UseLogonCredential Enabled (Cleartext Credential Staging) [stable, critical]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1134.001",
+      "score": 1,
+      "comment": "Resource-Based Constrained Delegation Configured on an Object [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1136.001",
+      "score": 1,
+      "comment": "Linux Account Created or Added to a Privileged Group [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1197",
+      "score": 1,
+      "comment": "File Transfer via BITS [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1207",
+      "score": 1,
+      "comment": "DCShadow Rogue Domain Controller Registration [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1218.005",
+      "score": 1,
+      "comment": "mshta Executing a Remote or Script Payload [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1218.010",
+      "score": 1,
+      "comment": "regsvr32 Scriptlet Execution (Squiblydoo) [stable, critical]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1218.011",
+      "score": 1,
+      "comment": "rundll32 Loading a Payload From a Suspicious Location [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1222.001",
+      "score": 1,
+      "comment": "AdminSDHolder Container Modified [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1482",
+      "score": 1,
+      "comment": "Domain Reconnaissance via Built-in Utilities [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1484.001",
+      "score": 1,
+      "comment": "Group Policy Object Modified [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1486",
+      "score": 1,
+      "comment": "Shadow Copy Deletion via VSSAdmin or WMIC [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1489",
+      "score": 1,
+      "comment": "Database and Backup Services Stopped En Masse [stable, critical]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1490",
+      "score": 2,
+      "comment": "Backup and Recovery Destruction Before Encryption [stable, critical]\nShadow Copy Deletion via VSSAdmin or WMIC [stable, high]\n\n2 of 2 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "2"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1543.002",
+      "score": 1,
+      "comment": "Linux systemd Unit Created or Modified [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1543.003",
+      "score": 1,
+      "comment": "Service Installed From a Suspicious Path [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1546.003",
+      "score": 1,
+      "comment": "WMI Event Subscription Persistence [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1547.001",
+      "score": 1,
+      "comment": "Autorun Persistence via Registry Run Key [stable, medium]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1547.006",
+      "score": 1,
+      "comment": "Linux Kernel Module Loaded [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1548.003",
+      "score": 1,
+      "comment": "Linux sudoers Policy Modified [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1550.002",
+      "score": 1,
+      "comment": "Pass-the-Hash via NTLM Network Logon [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1550.003",
+      "score": 1,
+      "comment": "Unconstrained or Constrained Delegation Enabled on an Account [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1556",
+      "score": 1,
+      "comment": "Shadow Credentials Added via msDS-KeyCredentialLink [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1557.001",
+      "score": 1,
+      "comment": "ADCS Certificate Issued to a Machine Account on a User Template [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1558.001",
+      "score": 1,
+      "comment": "krbtgt Account Password Reset or Modified [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1558.003",
+      "score": 1,
+      "comment": "Kerberoasting via RC4 Service Ticket Request [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1558.004",
+      "score": 1,
+      "comment": "AS-REP Roasting via Accounts Without Kerberos Pre-Authentication [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1560.001",
+      "score": 1,
+      "comment": "Bulk Archive Creation Consistent With Collection Staging [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1562.001",
+      "score": 4,
+      "comment": "Microsoft Defender Protection Disabled [stable, critical]\nLinux Audit Subsystem Tampered With [experimental, critical]\nAMSI Bypass Attempt in PowerShell [stable, critical]\nKnown Vulnerable Driver Loaded (BYOVD) [experimental, critical]\n\n2 of 4 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "4"
+        },
+        {
+          "name": "validated",
+          "value": "2"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1566.001",
+      "score": 1,
+      "comment": "Office Application Spawns a Script Interpreter [stable, high]\n\n1 of 1 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "1"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1567.002",
+      "score": 1,
+      "comment": "Bulk Upload to Cloud Storage via Command-Line Tooling [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1574.006",
+      "score": 1,
+      "comment": "Linux Shared Library Hijack via ld.so.preload [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1611",
+      "score": 1,
+      "comment": "Linux Container Escape Attempt [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1649",
+      "score": 2,
+      "comment": "ADCS Certificate Requested With an Arbitrary Subject Alternative Name [experimental, critical]\nADCS Certificate Issued to a Machine Account on a User Template [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    }
+  ],
+  "gradient": {
+    "colors": [
+      "#f7e9f1",
+      "#d16aa6",
+      "#8a1259"
+    ],
+    "minValue": 0,
+    "maxValue": 6
+  },
+  "legendItems": [
+    {
+      "label": "1 rule",
+      "color": "#f7e9f1"
+    },
+    {
+      "label": "2 rules",
+      "color": "#d16aa6"
+    },
+    {
+      "label": "3+ rules",
+      "color": "#8a1259"
+    }
+  ],
+  "showTacticRowBackground": true,
+  "tacticRowBackground": "#2b2340",
+  "selectTechniquesAcrossTactics": true,
+  "metadata": [
+    {
+      "name": "source",
+      "value": "https://github.com/zshguy/tyrian-detection-pack"
+    },
+    {
+      "name": "license",
+      "value": "MIT"
+    }
+  ]
+}

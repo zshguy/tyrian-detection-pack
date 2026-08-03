@@ -1,6 +1,9 @@
 // Database and Backup Services Stopped En Masse
 // Detects bulk service stops targeting databases, mail and backup agents. Ransomware does this to unlock files held open by those services so they can be encrypted too.
-// techniques: T1489   severity: critical
+// techniques: T1489   severity: critical   status: stable
+// validate: Atomic Red Team T1489
+//   net stop MSSQLSERVER /y
+//   net stop VeeamBackupSvc /y
 // source: rules/impact/service-stop-before-encryption.yml  (GENERATED, do not edit by hand)
 Event
 | where (((CommandLine has_any (dynamic(["net stop ", "sc stop ", "Stop-Service"])))) and ((CommandLine has_any (dynamic(["sql", "veeam", "backup", "exchange", "vss", "msexchange"])))))

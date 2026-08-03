@@ -24,6 +24,10 @@ detection:
       - ' -e '
       - ' -ec '
   condition: selection and encoded
+validation:
+  atomic: T1059.001
+  fire: |-
+    powershell.exe -nop -w hidden -enc <base64-of-utf16le-command>
 falsepositives:
   - Some management suites wrap scripts in encoded commands; allowlist by parent
 level: high

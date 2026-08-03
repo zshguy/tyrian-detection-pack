@@ -25,6 +25,10 @@ detection:
       - '\\regsvr32.exe'
       - '\\certutil.exe'
   condition: selection and suspicious_child
+validation:
+  atomic: T1047
+  fire: |-
+    wmic /node:<host> process call create "cmd.exe /c whoami > C:\Windows\Temp\o.txt"
 falsepositives:
   - Monitoring and inventory agents that act on hosts over WMI
 level: high

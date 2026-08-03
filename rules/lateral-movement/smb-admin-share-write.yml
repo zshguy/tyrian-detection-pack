@@ -21,6 +21,10 @@ detection:
   filter_machine:
     SubjectUserName|endswith: '$'
   condition: selection and not filter_machine
+validation:
+  atomic: T1021.002
+  fire: |-
+    copy payload.exe \\<host>\C$\Windows\Temp\payload.exe
 falsepositives:
   - Backup, imaging and software-deployment tooling that uses admin shares
 level: high

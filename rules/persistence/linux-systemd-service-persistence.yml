@@ -1,0 +1,33 @@
+title: Linux systemd Unit Created or Modified
+id: d172a386-f490-45c7-e0b8-tyrian000043
+status: experimental
+description: >
+  Detects writes to systemd unit directories. A unit file gives an attacker
+  root-level execution on every boot with automatic restart, supervised by init
+  itself, which is why it has largely replaced rc.local and init scripts as the
+  Linux persistence of choice.
+references:
+  - https://attack.mitre.org/techniques/T1543/002/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_systemd'
+  condition: selection
+validation:
+  atomic: T1543.002
+  fire: |-
+    printf '[Service]\nExecStart=/dev/shm/beacon\n[Install]\nWantedBy=multi-user.target\n' \
+      > /etc/systemd/system/tyrian-test.service
+    systemctl daemon-reload
+falsepositives:
+  - Package installation and updates, which legitimately write unit files
+  - Configuration management deploying services
+level: high
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1543.002

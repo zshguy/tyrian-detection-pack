@@ -28,44 +28,50 @@ jobs:
 
       - name: Compile all backends
         run: |
-          python tools/sigma_compile.py --backend wazuh    --out dist/wazuh
-          python tools/sigma_compile.py --backend splunk   --out dist/splunk
-          python tools/sigma_compile.py --backend sentinel --out dist/sentinel
+          python tools/sigma_compile.py --backend wazuh     --out dist/wazuh
+          python tools/sigma_compile.py --backend splunk    --out dist/splunk
+          python tools/sigma_compile.py --backend sentinel  --out dist/sentinel
+          python tools/sigma_compile.py --backend navigator --out dist/navigator
+          python tools/sigma_compile.py --backend coverage
 
-      # dist/ is a committed deliverable so the pack is usable without running
-      # anything. CI is the authority for it rather than the contributor's
-      # machine, because Windows endpoint AV quarantines compiled detections
-      # (they contain the attacker strings they match on). Contributors edit
-      # rules/ and never have to produce dist/ themselves.
-      - name: Commit refreshed dist/
+      # dist/ and COVERAGE.md are committed deliverables so the pack is usable
+      # without running anything. CI is the authority for them rather than the
+      # contributor's machine, because Windows endpoint AV quarantines compiled
+      # detections (they contain the attacker strings they match on).
+      # Contributors edit rules/ and never have to produce build output at all.
+      #
+      # Both are committed in ONE step: staging them separately risks making a
+      # COVERAGE.md commit that never gets pushed, because the push lives in the
+      # dist/ step and that step short-circuits when dist/ has not drifted.
+      - name: Commit refreshed build output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           # Stage first, then compare against the index. `git diff` alone only
           # reports modifications to already-tracked files, so a compiled rule
           # that is missing entirely (the usual case, since contributors on
           # Windows lose AV-quarantined files) would look like "no drift".
-          git add -A dist/
-          if git diff --cached --quiet -- dist/; then
-            echo "dist/ already current"
+          git add -A dist/ COVERAGE.md
+          if git diff --cached --quiet -- dist/ COVERAGE.md; then
+            echo "build output already current"
             exit 0
           fi
-          echo "dist/ drifted:"
-          git diff --cached --stat -- dist/
+          echo "build output drifted:"
+          git diff --cached --stat -- dist/ COVERAGE.md
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "ci: recompile dist/ from rules/"
+          git commit -m "ci: recompile dist/ and COVERAGE.md from rules/"
           git push
 
       # On pull requests we only report drift, never push to a fork's branch.
-      - name: Report dist/ drift
+      - name: Report build output drift
         if: github.event_name == 'pull_request'
         run: |
-          git add -N -A dist/
-          if git diff --quiet -- dist/; then
-            echo "dist/ is current"
+          git add -N -A dist/ COVERAGE.md
+          if git diff --quiet -- dist/ COVERAGE.md; then
+            echo "build output is current"
           else
-            echo "::notice::dist/ differs from rules/. It will be recompiled automatically when this merges."
-            git diff --stat -- dist/
+            echo "::notice::dist/ or COVERAGE.md differs from rules/. It will be recompiled automatically when this merges."
+            git diff --stat -- dist/ COVERAGE.md
           fi
 
       - name: Coverage summary

@@ -28,6 +28,10 @@ detection:
       - '\\Desktop'
       - '\\Shares'
   condition: tool and targets
+validation:
+  atomic: T1560.001
+  fire: |-
+    7z.exe a -hp'pass' C:\Windows\Temp\loot.7z C:\Users\<user>\Documents
 falsepositives:
   - Users legitimately archiving their own work
 level: medium

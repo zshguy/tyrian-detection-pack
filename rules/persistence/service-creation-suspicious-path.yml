@@ -25,6 +25,10 @@ detection:
       - 'cmd.exe /c'
       - 'rundll32'
   condition: selection and suspicious_path
+validation:
+  atomic: T1543.003
+  fire: |-
+    sc.exe create TyrianTest binPath= C:\Windows\Temp\p.exe start= auto
 falsepositives:
   - Some software installs services from ProgramData; allowlist by publisher
 level: high

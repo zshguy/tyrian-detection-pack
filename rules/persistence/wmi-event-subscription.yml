@@ -19,6 +19,11 @@ detection:
       - 20
       - 21
   condition: selection
+validation:
+  atomic: T1546.003
+  fire: |-
+    Register a __EventFilter + CommandLineEventConsumer pair and bind them with a
+    __FilterToConsumerBinding (Sysmon EID 19/20/21).
 falsepositives:
   - A few management products register permanent consumers; enumerate them once
 level: high

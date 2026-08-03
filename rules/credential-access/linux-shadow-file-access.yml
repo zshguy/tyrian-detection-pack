@@ -1,0 +1,31 @@
+title: Linux Password Hash File Accessed by a User
+id: ae4f7053-c16d-4294-bd85-tyrian000040
+status: experimental
+description: >
+  Detects reads or writes of /etc/shadow and /etc/gshadow by an interactive login.
+  The audit rule that feeds this is already filtered to auid>=1000, so normal
+  authentication by daemons (which run with auid unset) does not reach it. A hit
+  is someone at a keyboard reading the hashes.
+references:
+  - https://attack.mitre.org/techniques/T1003/008/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_shadow'
+  condition: selection
+validation:
+  atomic: T1003.008
+  fire: |-
+    sudo cat /etc/shadow > /dev/null
+    sudo unshadow /etc/passwd /etc/shadow > /tmp/creds.txt
+falsepositives:
+  - An administrator running passwd, chage or usermod interactively
+  - Backup and configuration-audit tooling running under a human account
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1003.008

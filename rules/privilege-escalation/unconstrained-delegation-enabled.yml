@@ -1,0 +1,41 @@
+title: Unconstrained or Constrained Delegation Enabled on an Account
+id: ae4f705d-c16e-4291-db85-tyrian000056
+status: experimental
+description: >
+  Detects delegation being turned on for a user or computer account, via a write to
+  userAccountControl's TRUSTED_FOR_DELEGATION flag or to msDS-AllowedToDelegateTo.
+  A host trusted for unconstrained delegation caches the TGT of every account that
+  authenticates to it, so an attacker who gains it and then coerces a domain
+  controller to connect walks away with the DC's ticket.
+references:
+  - https://attack.mitre.org/techniques/T1098/
+  - https://attack.mitre.org/techniques/T1550/003/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  delegation_target_list:
+    EventID: 5136
+    AttributeLDAPDisplayName: 'msDS-AllowedToDelegateTo'
+  uac_trusted_for_delegation:
+    EventID: 5136
+    AttributeLDAPDisplayName: 'userAccountControl'
+    AttributeValue|contains:
+      - '524288'      # TRUSTED_FOR_DELEGATION
+      - '16777216'    # TRUSTED_TO_AUTH_FOR_DELEGATION
+  condition: delegation_target_list or uac_trusted_for_delegation
+validation:
+  atomic: T1098
+  fire: |-
+    Set-ADAccountControl -Identity SRV01$ -TrustedForDelegation $true
+    Set-ADUser svc_web -Add @{'msDS-AllowedToDelegateTo'='CIFS/dc01.tyrian.lab'}
+falsepositives:
+  - Legitimate service deployments that require delegation, which should be documented
+level: high
+tags:
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1098
+  - attack.t1550.003

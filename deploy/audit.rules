@@ -1,0 +1,86 @@
+# Tyrian Detection Pack - auditd rules
+#
+# The Linux detections in this pack key off these audit rules. Without them the
+# telemetry simply does not exist, and the rules will sit there matching nothing.
+#
+#   sudo cp deploy/audit.rules /etc/audit/rules.d/tyrian.rules
+#   sudo augenrules --load
+#   sudo auditctl -l | grep tyrian        # confirm they loaded
+#
+# Every rule carries a `-k tyrian_*` key. The Sigma rules match on that key, so
+# renaming a key here means editing the rule that reads it.
+#
+# Two deliberate choices worth knowing about:
+#
+#   auid>=1000 filters to logins by real people. Daemons run with auid unset
+#   (4294967295) and would otherwise bury you in noise. The cost is that an
+#   attacker operating purely from a compromised service account is filtered
+#   out, so keep the -F auid!=unset watches on the files that matter most.
+#
+#   Directory watches use -p wa (write + attribute), never -p r on a busy path.
+#   A read watch on /var/log is a self-inflicted denial of service.
+
+## ---------------------------------------------------------------------------
+## Process execution. The backbone: most rules below refine this stream.
+## ---------------------------------------------------------------------------
+-a always,exit -F arch=b64 -S execve -F auid>=1000 -F auid!=unset -k tyrian_exec
+-a always,exit -F arch=b32 -S execve -F auid>=1000 -F auid!=unset -k tyrian_exec
+
+## ---------------------------------------------------------------------------
+## Credential stores
+## ---------------------------------------------------------------------------
+# Reads of the hashes. -p r is affordable here because /etc/shadow is not a
+# hot path; a normal system reads it only at authentication time.
+-w /etc/shadow  -p rwa -k tyrian_shadow
+-w /etc/gshadow -p rwa -k tyrian_shadow
+-w /etc/passwd  -p wa  -k tyrian_passwd
+-w /etc/group   -p wa  -k tyrian_passwd
+
+## ---------------------------------------------------------------------------
+## Privilege escalation config
+## ---------------------------------------------------------------------------
+-w /etc/sudoers    -p wa -k tyrian_sudoers
+-w /etc/sudoers.d/ -p wa -k tyrian_sudoers
+
+## ---------------------------------------------------------------------------
+## Persistence surfaces
+## ---------------------------------------------------------------------------
+-w /etc/ld.so.preload -p wa -k tyrian_ldpreload
+-w /etc/ld.so.conf.d/ -p wa -k tyrian_ldpreload
+
+-w /etc/crontab      -p wa -k tyrian_cron
+-w /etc/cron.d/      -p wa -k tyrian_cron
+-w /etc/cron.daily/  -p wa -k tyrian_cron
+-w /etc/cron.hourly/ -p wa -k tyrian_cron
+-w /var/spool/cron/  -p wa -k tyrian_cron
+
+-w /etc/systemd/system/  -p wa -k tyrian_systemd
+-w /lib/systemd/system/  -p wa -k tyrian_systemd
+-w /etc/rc.local         -p wa -k tyrian_systemd
+
+# SSH trust. Covers root plus the conventional home layout; add -w lines for any
+# service account whose home lives outside /home.
+-w /root/.ssh/       -p wa -k tyrian_ssh_keys
+-w /home/            -p wa -k tyrian_ssh_keys_home
+-w /etc/ssh/sshd_config -p wa -k tyrian_sshd_config
+
+## ---------------------------------------------------------------------------
+## Anti-forensics
+## ---------------------------------------------------------------------------
+# Deletion inside /var/log specifically, rather than a write watch that would
+# fire on every syslog line.
+-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F dir=/var/log -F auid>=1000 -F auid!=unset -k tyrian_logdel
+
+# Tampering with auditing itself.
+-w /etc/audit/       -p wa -k tyrian_auditcfg
+-w /etc/audisp/      -p wa -k tyrian_auditcfg
+-w /sbin/auditctl    -p x  -k tyrian_auditcfg
+-w /sbin/auditd      -p x  -k tyrian_auditcfg
+
+## ---------------------------------------------------------------------------
+## Kernel modules
+## ---------------------------------------------------------------------------
+-w /sbin/insmod   -p x -k tyrian_modules
+-w /sbin/rmmod    -p x -k tyrian_modules
+-w /sbin/modprobe -p x -k tyrian_modules
+-a always,exit -F arch=b64 -S init_module,delete_module -k tyrian_modules

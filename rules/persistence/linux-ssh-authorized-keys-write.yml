@@ -1,0 +1,31 @@
+title: Linux SSH authorized_keys Modified
+id: bf508164-d27e-43a5-ce96-tyrian000041
+status: experimental
+description: >
+  Detects writes to an authorized_keys file. Appending a public key is the quietest
+  durable backdoor on Linux: it survives reboots and password rotation, needs no
+  malware on disk, and looks like ordinary administration in every log except this
+  one. Pair a hit with "who owns that key".
+references:
+  - https://attack.mitre.org/techniques/T1098/004/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey|startswith: 'tyrian_ssh_keys'
+    TargetFilename|contains: 'authorized_keys'
+  condition: selection
+validation:
+  atomic: T1098.004
+  fire: |-
+    echo 'ssh-ed25519 AAAAC3Nz... attacker@host' >> ~/.ssh/authorized_keys
+falsepositives:
+  - Configuration management (Ansible, Puppet, cloud-init) distributing keys
+  - Genuine onboarding of a new administrator
+level: high
+tags:
+  - attack.persistence
+  - attack.t1098.004

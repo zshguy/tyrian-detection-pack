@@ -1,6 +1,8 @@
 // Autorun Persistence via Registry Run Key
 // Detects writes to the Run and RunOnce keys, the most common persistence location on Windows. Alert value comes from what is written, so review the target value rather than the key itself.
-// techniques: T1547.001   severity: medium
+// techniques: T1547.001   severity: medium   status: stable
+// validate: Atomic Red Team T1547.001
+//   reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Updater /t REG_SZ /d C:\Windows\Temp\p.exe /f
 // source: rules/persistence/registry-run-key-write.yml  (GENERATED, do not edit by hand)
 Event
 | where ((TargetObject has_any (dynamic(["\\CurrentVersion\\Run\\", "\\CurrentVersion\\RunOnce\\", "\\CurrentVersion\\Policies\\Explorer\\Run\\"]))))

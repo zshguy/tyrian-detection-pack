@@ -19,6 +19,10 @@ detection:
       - '\\CurrentVersion\\RunOnce\\'
       - '\\CurrentVersion\\Policies\\Explorer\\Run\\'
   condition: selection
+validation:
+  atomic: T1547.001
+  fire: |-
+    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Updater /t REG_SZ /d C:\Windows\Temp\p.exe /f
 falsepositives:
   - Software installers legitimately register autostart entries
 level: medium

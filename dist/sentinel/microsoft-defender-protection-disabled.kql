@@ -1,6 +1,8 @@
 // Microsoft Defender Protection Disabled
 // Detects real-time protection or scanning being turned off through PowerShell or the registry, which is a routine precursor to dropping tooling that would otherwise be quarantined.
-// techniques: T1562.001   severity: critical
+// techniques: T1562.001   severity: critical   status: stable
+// validate: Atomic Red Team T1562.001
+//   Set-MpPreference -DisableRealtimeMonitoring $true
 // source: rules/defense-evasion/defender-disabled.yml  (GENERATED, do not edit by hand)
 Event
 | where ((CommandLine has_any (dynamic(["Set-MpPreference -DisableRealtimeMonitoring $true", "DisableRealtimeMonitoring 1", "Add-MpPreference -ExclusionPath", "DisableAntiSpyware"]))))

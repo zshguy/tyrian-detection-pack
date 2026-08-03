@@ -1,0 +1,9 @@
+// Unconstrained or Constrained Delegation Enabled on an Account
+// Detects delegation being turned on for a user or computer account, via a write to userAccountControl's TRUSTED_FOR_DELEGATION flag or to msDS-AllowedToDelegateTo. A host trusted for unconstrained delegation caches the TGT of every account that authenticates to it, so an attacker who gains it and then coerces a domain controller to connect walks away with the DC's ticket.
+// techniques: T1098,T1550.003   severity: high   status: experimental
+// validate: Atomic Red Team T1098
+//   Set-ADAccountControl -Identity SRV01$ -TrustedForDelegation $true
+//   Set-ADUser svc_web -Add @{'msDS-AllowedToDelegateTo'='CIFS/dc01.tyrian.lab'}
+// source: rules/privilege-escalation/unconstrained-delegation-enabled.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where (((EventID =~ "5136") and (AttributeLDAPDisplayName =~ "msDS-AllowedToDelegateTo")) or ((EventID =~ "5136") and (AttributeLDAPDisplayName =~ "userAccountControl") and (AttributeValue contains "524288" or AttributeValue contains "16777216")))

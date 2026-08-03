@@ -1,6 +1,9 @@
 // Account Added to a Privileged Local or Domain Group
 // Detects membership changes to high-value groups. Adding an account to Domain Admins or the local Administrators group is both a common attacker objective and a rare, auditable administrative act.
-// techniques: T1098   severity: high
+// techniques: T1098   severity: high   status: stable
+// validate: Atomic Red Team T1136.001
+//   net user svcbackup 'Autumn2026!' /add
+//   net localgroup administrators svcbackup /add
 // source: rules/persistence/new-local-admin-account.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where ((EventID =~ "4728" or EventID =~ "4732" or EventID =~ "4756"))

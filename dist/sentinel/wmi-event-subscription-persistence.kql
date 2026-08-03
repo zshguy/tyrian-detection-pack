@@ -1,6 +1,9 @@
 // WMI Event Subscription Persistence
 // Detects creation of WMI event filters, consumers and bindings, a fileless persistence mechanism that survives reboot and is invisible to autoruns inspection of the usual locations.
-// techniques: T1546.003   severity: high
+// techniques: T1546.003   severity: high   status: stable
+// validate: Atomic Red Team T1546.003
+//   Register a __EventFilter + CommandLineEventConsumer pair and bind them with a
+//   __FilterToConsumerBinding (Sysmon EID 19/20/21).
 // source: rules/persistence/wmi-event-subscription.yml  (GENERATED, do not edit by hand)
 Event
 | where ((EventID =~ "19" or EventID =~ "20" or EventID =~ "21"))

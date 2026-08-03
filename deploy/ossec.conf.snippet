@@ -1,11 +1,64 @@
 <!--
-  Add this <syscheck> block to your Wazuh manager's /var/ossec/etc/ossec.conf
-  (or the agent's, for endpoint FIM) so rules 100486 / 100487 have file-change
-  telemetry to fire on. Point it at the directories you actually care about, then
-  restart: /var/ossec/bin/wazuh-control restart
+  Wazuh configuration for the telemetry these rules read. Add the blocks you need
+  to /var/ossec/etc/ossec.conf, then restart:
+      /var/ossec/bin/wazuh-control restart
 
-  realtime="yes" gives near-instant detection of the encryption burst. On Windows,
-  use a path like <directories ...>C:\Users\Shared\Data</directories>.
+  Three separate concerns below: auditd (every Linux rule), Windows event
+  channels (every Windows rule), and file integrity monitoring (the encryption
+  burst rules).
+-->
+
+<!--
+  1. Linux: auditd.
+  Required by every rule with `logsource: {product: linux, service: auditd}`.
+  Wazuh does not read auditd unless you tell it to, and the audit rules
+  themselves have to be installed separately:
+
+      sudo cp deploy/audit.rules /etc/audit/rules.d/tyrian.rules
+      sudo augenrules --load
+
+  Both halves are needed. No audit rule means the event is never generated; no
+  localfile means it is generated and never reaches the manager.
+-->
+<localfile>
+  <log_format>audit</log_format>
+  <location>/var/log/audit/audit.log</location>
+</localfile>
+
+<!--
+  2. Windows: event channels.
+  Sysmon carries most of the Windows corpus. Install it with a real config
+  (SwiftOnSecurity's or Olaf Hartong's modular config are the usual starting
+  points) before expecting the process, pipe, driver and injection rules to fire.
+
+  The Active Directory rules additionally need auditing that is off by default:
+    - "Audit Directory Service Changes" (Success) on the DCs, for 5136/5137
+    - Certification Authority auditing on the CA, for 4886/4887
+  Without those, the ADCS, shadow-credential, RBCD, DCShadow and GPO rules see
+  nothing at all.
+-->
+<localfile>
+  <location>Microsoft-Windows-Sysmon/Operational</location>
+  <log_format>eventchannel</log_format>
+</localfile>
+<localfile>
+  <location>Security</location>
+  <log_format>eventchannel</log_format>
+</localfile>
+<localfile>
+  <location>System</location>
+  <log_format>eventchannel</log_format>
+</localfile>
+<localfile>
+  <location>Microsoft-Windows-PowerShell/Operational</location>
+  <log_format>eventchannel</log_format>
+</localfile>
+
+<!--
+  3. File integrity monitoring.
+  Feeds the mass-encryption rules. Point it at directories you actually care
+  about; realtime="yes" gives near-instant detection of an encryption burst.
+  On Windows use a path like <directories ...>C:\Users\Shared\Data</directories>.
 -->
 <syscheck>
   <disabled>no</disabled>

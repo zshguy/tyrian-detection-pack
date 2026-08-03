@@ -16,6 +16,10 @@ detection:
   selection:
     ParentImage|endswith: '\\wsmprovhost.exe'
   condition: selection
+validation:
+  atomic: T1021.006
+  fire: |-
+    Invoke-Command -ComputerName <host> -ScriptBlock { whoami }
 falsepositives:
   - Configuration management and routine remote administration
 level: medium

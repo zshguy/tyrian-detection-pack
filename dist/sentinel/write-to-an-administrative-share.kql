@@ -1,6 +1,8 @@
 // Write to an Administrative Share
 // Detects file writes to the hidden administrative shares, which is the staging half of PsExec-style lateral movement: drop the payload over SMB, then start it as a service on the target.
-// techniques: T1021.002   severity: high
+// techniques: T1021.002   severity: high   status: stable
+// validate: Atomic Red Team T1021.002
+//   copy payload.exe \\<host>\C$\Windows\Temp\payload.exe
 // source: rules/lateral-movement/smb-admin-share-write.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where (((EventID =~ "5145") and (ObjectName contains "ADMIN$" or ObjectName contains "C$")) and not ((SubjectUserName endswith "$")))

@@ -1,0 +1,35 @@
+title: krbtgt Account Password Reset or Modified
+id: d172a3e0-f491-45c0-a0b8-tyrian000059
+status: experimental
+description: >
+  Detects a password reset or attribute change on the krbtgt account. Its hash
+  signs every Kerberos ticket in the domain, so it is both the key an attacker
+  needs for a Golden Ticket and the key a defender rotates (twice) to invalidate
+  one. Either way, an unexpected change here is one of the highest-signal events
+  Active Directory produces.
+references:
+  - https://attack.mitre.org/techniques/T1558/001/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - 4723   # attempt to change an account password
+      - 4724   # attempt to reset an account password
+      - 4738   # user account was changed
+    TargetUserName|startswith: 'krbtgt'
+  condition: selection
+validation:
+  atomic: T1558.001
+  fire: |-
+    Set-ADAccountPassword -Identity krbtgt -Reset -NewPassword (Read-Host -AsSecureString)
+falsepositives:
+  - A planned krbtgt rotation, which should be a known, scheduled activity
+level: critical
+tags:
+  - attack.credential_access
+  - attack.impact
+  - attack.t1558.001

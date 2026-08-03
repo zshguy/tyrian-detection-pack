@@ -29,6 +29,10 @@ detection:
       - 'mshta'
       - 'DownloadString'
   condition: selection and suspicious
+validation:
+  atomic: T1053.005
+  fire: |-
+    schtasks /create /tn "Updater" /tr "powershell -w hidden -enc <b64>" /sc onlogon /ru SYSTEM
 falsepositives:
   - Legitimate software installers creating tasks; baseline and exclude signed tools
 level: high

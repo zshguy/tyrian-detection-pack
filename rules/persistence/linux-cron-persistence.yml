@@ -1,0 +1,32 @@
+title: Linux Scheduled Task Persistence via cron
+id: c0619275-e38f-44b6-dfa7-tyrian000042
+status: experimental
+description: >
+  Detects writes to the system cron surfaces: /etc/crontab, the cron.d and
+  cron.<interval> drop-in directories, and the per-user spool. Cron remains the
+  most common Linux persistence mechanism because it is present everywhere and
+  needs no privileges beyond the user's own crontab.
+references:
+  - https://attack.mitre.org/techniques/T1053/003/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_cron'
+  condition: selection
+validation:
+  atomic: T1053.003
+  fire: |-
+    echo '* * * * * root /dev/shm/beacon' > /etc/cron.d/tyrian-test
+    (crontab -l 2>/dev/null; echo '@reboot /tmp/beacon') | crontab -
+falsepositives:
+  - Package installs that drop a cron.d file (logrotate, certbot, backup agents)
+  - Configuration management managing scheduled jobs
+level: high
+tags:
+  - attack.persistence
+  - attack.execution
+  - attack.t1053.003

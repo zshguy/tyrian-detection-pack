@@ -21,6 +21,10 @@ detection:
       - 'MiniDump'
       - '#24'
   condition: selection and dumpcall
+validation:
+  atomic: T1003.001
+  fire: |-
+    rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump <lsass_pid> C:\Windows\Temp\l.dmp full
 falsepositives:
   - Essentially none in normal operation
 level: critical

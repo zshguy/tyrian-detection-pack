@@ -1,6 +1,9 @@
 // Office Application Spawns a Script Interpreter
 // Detects the process lineage created by malicious document macros: an Office app (Word, Excel, PowerPoint, Outlook) spawning a script host (PowerShell, cmd, wscript, mshta, rundll32). Reliable initial-access signal for phishing.
-// techniques: T1566.001,T1059   severity: high
+// techniques: T1566.001,T1059   severity: high   status: stable
+// validate: Atomic Red Team T1566.001
+//   Open a macro-enabled document whose AutoOpen runs Shell("cmd.exe /c ..."),
+//   so WINWORD.EXE becomes the parent of cmd.exe.
 // source: rules/initial-access/office-spawns-script-host.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where ((ParentProcessName endswith "\winword.exe" or ParentProcessName endswith "\excel.exe" or ParentProcessName endswith "\powerpnt.exe" or ParentProcessName endswith "\outlook.exe") and (NewProcessName endswith "\powershell.exe" or NewProcessName endswith "\cmd.exe" or NewProcessName endswith "\wscript.exe" or NewProcessName endswith "\cscript.exe" or NewProcessName endswith "\mshta.exe" or NewProcessName endswith "\rundll32.exe"))

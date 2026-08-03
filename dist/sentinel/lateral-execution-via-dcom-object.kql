@@ -1,6 +1,9 @@
 // Lateral Execution via DCOM Object
 // Detects code launched through DCOM application objects such as MMC20.Application or ShellWindows, a quieter alternative to PsExec that leaves no service-creation artifact behind.
-// techniques: T1021.003   severity: high
+// techniques: T1021.003   severity: high   status: stable
+// validate: Atomic Red Team T1021.003
+//   $c=[activator]::CreateInstance([type]::GetTypeFromProgID('MMC20.Application','<host>'))
+//   $c.Document.ActiveView.ExecuteShellCommand('cmd.exe',$null,'/c calc','7')
 // source: rules/lateral-movement/dcom-lateral-execution.yml  (GENERATED, do not edit by hand)
 Event
 | where ((((ParentProcessName endswith "\\mmc.exe" or ParentProcessName endswith "\\dllhost.exe")) and ((NewProcessName endswith "\\cmd.exe" or NewProcessName endswith "\\powershell.exe" or NewProcessName endswith "\\mshta.exe"))) and ((ParentCommandLine contains "-Embedding" or ParentCommandLine contains "MMC20")))

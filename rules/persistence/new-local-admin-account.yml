@@ -19,6 +19,11 @@ detection:
       - 4732
       - 4756
   condition: selection
+validation:
+  atomic: T1136.001
+  fire: |-
+    net user svcbackup 'Autumn2026!' /add
+    net localgroup administrators svcbackup /add
 falsepositives:
   - Routine onboarding, which should still be reviewed
 level: high

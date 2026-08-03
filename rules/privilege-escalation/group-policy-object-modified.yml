@@ -1,0 +1,37 @@
+title: Group Policy Object Modified
+id: c06192df-e380-44b3-fda7-tyrian000058
+status: experimental
+description: >
+  Detects modification of a groupPolicyContainer object or a write into the SYSVOL
+  Policies share. A GPO is a distribution channel to every machine it links to, so
+  editing one that applies broadly turns a single compromised account into code
+  execution across the estate, delivered by the domain's own tooling.
+references:
+  - https://attack.mitre.org/techniques/T1484/001/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  gpo_object:
+    EventID: 5136
+    ObjectClass: 'groupPolicyContainer'
+  sysvol_write:
+    EventID: 5145
+    ShareName|contains: 'SYSVOL'
+    RelativeTargetName|contains: 'Policies'
+  condition: gpo_object or sysvol_write
+validation:
+  atomic: T1484.001
+  fire: |-
+    New-GPO -Name TyrianTest | New-GPLink -Target "DC=tyrian,DC=lab"
+    SharpGPOAbuse.exe --AddComputerTask --GPOName "Default Domain Policy" --Command cmd.exe --Arguments "/c whoami"
+falsepositives:
+  - Routine policy administration, which is why this needs to be reconciled against change records
+  - Backup and GPO reporting tooling touching SYSVOL
+level: high
+tags:
+  - attack.privilege_escalation
+  - attack.defense_evasion
+  - attack.t1484.001

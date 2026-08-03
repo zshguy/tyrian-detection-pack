@@ -1,6 +1,8 @@
 // Pass-the-Hash via NTLM Network Logon
 // Detects potential Pass-the-Hash by flagging NTLM network logons (Event ID 4624, Logon Type 3) for interactive-style accounts. Noisy on its own (legacy NTLM apps); correlate with a preceding LSASS-access alert for high confidence.
-// techniques: T1550.002   severity: medium
+// techniques: T1550.002   severity: medium   status: experimental
+// validate: Atomic Red Team T1550.002
+//   mimikatz.exe "sekurlsa::pth /user:<user> /domain:<domain> /ntlm:<hash> /run:cmd.exe"
 // source: rules/lateral-movement/pass-the-hash-ntlm.yml  (GENERATED, do not edit by hand)
 SecurityEvent
 | where ((((EventID =~ "4624") and (LogonType =~ "3") and (AuthenticationPackageName =~ "NTLM") and (LogonProcessName =~ "NtLmSsp")) and not ((TargetUserName =~ "ANONYMOUS LOGON"))) and not ((TargetUserName endswith "$")))

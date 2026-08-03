@@ -18,6 +18,10 @@ detection:
       - 1102
       - 104
   condition: selection
+validation:
+  atomic: T1070.001
+  fire: |-
+    wevtutil cl Security
 falsepositives:
   - Deliberate log rotation during decommissioning
 level: critical

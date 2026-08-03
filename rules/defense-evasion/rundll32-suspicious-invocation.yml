@@ -1,0 +1,47 @@
+title: rundll32 Loading a Payload From a Suspicious Location
+id: 48e91af0-6b08-4c37-172f-tyrian000066
+status: experimental
+description: >
+  Detects rundll32 executing a DLL from a user-writable directory, running JavaScript
+  through its scriptlet handler, or launching with no arguments at all. rundll32 is
+  signed by Microsoft and present everywhere, so an implant that lives inside it
+  inherits a trusted image name. A no-argument rundll32 is a particularly reliable
+  tell, since it does nothing useful and is a common injection host.
+references:
+  - https://attack.mitre.org/techniques/T1218/011/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  writable_path:
+    Image|endswith: '\rundll32.exe'
+    CommandLine|contains:
+      - '\Users\Public\'
+      - '\AppData\Local\Temp\'
+      - '\Windows\Temp\'
+      - '\ProgramData\'
+      - 'C:\Users\'
+  script_handler:
+    Image|endswith: '\rundll32.exe'
+    CommandLine|contains:
+      - 'javascript:'
+      - 'vbscript:'
+      - 'mshtml,RunHTMLApplication'
+      - 'url.dll,OpenURL'
+      - 'shell32.dll,ShellExec_RunDLL'
+  condition: writable_path or script_handler
+validation:
+  atomic: T1218.011
+  fire: |-
+    rundll32.exe javascript:"\..\mshtml,RunHTMLApplication ";alert('tyrian')
+    rundll32.exe C:\Windows\Temp\payload.dll,EntryPoint
+falsepositives:
+  - Installers and updaters that invoke a DLL export from a temp directory
+  - Legitimate ShellExec_RunDLL use by shell extensions
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.execution
+  - attack.t1218.011

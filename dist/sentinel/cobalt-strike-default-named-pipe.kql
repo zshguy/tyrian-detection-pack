@@ -1,0 +1,11 @@
+// Cobalt Strike Default Named Pipe
+// Detects named pipes matching Cobalt Strike's default naming for SMB beacons and post-exploitation jobs (msagent_, postex_, status_, and the MSSE- pattern). Operators can and do change these in a malleable profile, so this catches unmodified tooling rather than a tuned engagement. It stays worth having because unmodified tooling is what commodity intrusions actually run.
+// techniques: T1055,T1071   severity: high   status: experimental
+// validate: Atomic Red Team T1055
+//   Run a Cobalt Strike beacon with a default malleable profile and start an SMB
+//   beacon or a post-exploitation job (for example `run whoami`), which creates a
+//   postex_ pipe. On a range, any process creating a pipe named \msagent_test
+//   reproduces the telemetry.
+// source: rules/command-and-control/cobalt-strike-named-pipe.yml  (GENERATED, do not edit by hand)
+Event
+| where ((EventID =~ "17" or EventID =~ "18") and (PipeName startswith "\msagent_" or PipeName startswith "\postex_" or PipeName startswith "\postex_ssh_" or PipeName startswith "\status_" or PipeName startswith "\MSSE-" or PipeName startswith "\mojo_" or PipeName startswith "\netsvc_"))

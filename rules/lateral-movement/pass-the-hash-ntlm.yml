@@ -24,6 +24,10 @@ detection:
   filter_machine:
     TargetUserName|endswith: '$'
   condition: selection and not filter_anonymous and not filter_machine
+validation:
+  atomic: T1550.002
+  fire: |-
+    mimikatz.exe "sekurlsa::pth /user:<user> /domain:<domain> /ntlm:<hash> /run:cmd.exe"
 falsepositives:
   - Legacy applications and services that still use NTLM; run as a hunt or correlate
 level: medium

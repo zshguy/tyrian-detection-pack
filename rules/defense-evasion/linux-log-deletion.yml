@@ -1,0 +1,31 @@
+title: Linux Log Files Deleted From /var/log
+id: 04a5d6b9-27c3-48fa-13eb-tyrian000046
+status: experimental
+description: >
+  Detects unlink or rename of files under /var/log by an interactive user. The
+  feeding audit rule watches deletion syscalls specifically rather than writes,
+  because a write watch on /var/log fires on every log line and is unusable. An
+  attacker clearing tracks removes or truncates; both show up here.
+references:
+  - https://attack.mitre.org/techniques/T1070/002/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_logdel'
+  condition: selection
+validation:
+  atomic: T1070.002
+  fire: |-
+    rm -f /var/log/tyrian-test.log
+    mv /var/log/auth.log /var/log/auth.log.bak
+falsepositives:
+  - An administrator manually clearing disk space
+  - logrotate run by hand under a user account rather than by its timer
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.t1070.002

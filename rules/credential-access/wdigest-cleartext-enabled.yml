@@ -17,6 +17,10 @@ detection:
     TargetObject|endswith: '\\WDigest\\UseLogonCredential'
     Details: 'DWORD (0x00000001)'
   condition: selection
+validation:
+  atomic: T1112
+  fire: |-
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v UseLogonCredential /t REG_DWORD /d 1 /f
 falsepositives:
   - Legacy applications that genuinely require WDigest, which should be documented
 level: critical

@@ -1,0 +1,49 @@
+title: Linux Account Created or Added to a Privileged Group
+id: 37d809ec-5af6-4b29-461e-tyrian000049
+status: experimental
+description: >
+  Detects useradd/adduser execution and usermod adding an account to sudo, wheel,
+  admin or root. Creating a second administrator is how an operator converts a
+  stolen session into an account of their own, one that survives the original
+  credential being reset.
+references:
+  - https://attack.mitre.org/techniques/T1136/001/
+  - https://attack.mitre.org/techniques/T1098/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  account_created:
+    AuditKey: 'tyrian_exec'
+    Image|endswith:
+      - '/useradd'
+      - '/adduser'
+  privileged_group:
+    AuditKey: 'tyrian_exec'
+    Image|endswith:
+      - '/usermod'
+      - '/gpasswd'
+    ExecveA2|contains:
+      - 'sudo'
+      - 'wheel'
+      - 'admin'
+      - 'root'
+  passwd_file_edit:
+    AuditKey: 'tyrian_passwd'
+  condition: account_created or privileged_group or passwd_file_edit
+validation:
+  atomic: T1136.001
+  fire: |-
+    useradd -m svcbackup
+    usermod -aG sudo svcbackup
+falsepositives:
+  - Provisioning and configuration management creating service accounts
+  - Genuine administrator onboarding
+level: high
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1136.001
+  - attack.t1098

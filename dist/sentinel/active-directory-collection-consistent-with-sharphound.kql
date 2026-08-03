@@ -1,6 +1,8 @@
 // Active Directory Collection Consistent With SharpHound
 // Detects the command-line shapes produced by SharpHound and equivalent collectors. Mass AD enumeration is the reconnaissance step that precedes nearly every modern domain compromise.
-// techniques: T1087.002   severity: high
+// techniques: T1087.002   severity: high   status: stable
+// validate: Atomic Red Team T1087.002
+//   SharpHound.exe -c All --zipfilename loot
 // source: rules/discovery/bloodhound-sharphound-collection.yml  (GENERATED, do not edit by hand)
 Event
 | where ((CommandLine has_any (dynamic(["sharphound", "-c all", "--collectionmethod", "Invoke-BloodHound", "bloodhound.py"]))))

@@ -1,0 +1,48 @@
+title: Known Vulnerable Driver Loaded (BYOVD)
+id: 26c7f8d5-49e6-4a15-f50d-tyrian000064
+status: experimental
+description: >
+  Detects loading of drivers repeatedly abused to get kernel-level code execution
+  from an administrator context. Bring-your-own-vulnerable-driver is the standard
+  way ransomware crews disable endpoint protection: the driver is signed and
+  legitimate, so it loads cleanly, and the vulnerability inside it is used to kill
+  protected processes. Keep this list current against the Microsoft vulnerable
+  driver blocklist and LOLDrivers.
+references:
+  - https://attack.mitre.org/techniques/T1068/
+  - https://attack.mitre.org/techniques/T1562/001/
+  - https://www.loldrivers.io/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    EventID: 6   # driver loaded
+    ImageLoaded|endswith:
+      - '\iqvw64e.sys'      # Intel network adapter diagnostic
+      - '\RTCore64.sys'     # MSI Afterburner
+      - '\gdrv.sys'         # Gigabyte
+      - '\dbutil_2_3.sys'   # Dell
+      - '\DBUtilDrv2.sys'
+      - '\procexp152.sys'   # abused Process Explorer driver
+      - '\truesight.sys'    # RogueKiller
+      - '\viragt64.sys'
+      - '\aswArPot.sys'     # Avast anti-rootkit
+      - '\mhyprot2.sys'     # Genshin anti-cheat
+  condition: selection
+validation:
+  atomic: T1068
+  fire: |-
+    sc create tyriantest binPath= C:\Windows\Temp\RTCore64.sys type= kernel
+    sc start tyriantest
+falsepositives:
+  - Genuine use of the parent software (MSI Afterburner, Dell or Gigabyte utilities,
+    Process Explorer). Legitimate presence does not make the driver safe to leave loaded
+level: critical
+tags:
+  - attack.privilege_escalation
+  - attack.defense_evasion
+  - attack.t1068
+  - attack.t1562.001

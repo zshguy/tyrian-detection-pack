@@ -26,6 +26,10 @@ detection:
       - '\MsMpEng.exe'          # Microsoft Defender
       - '\wmiprvse.exe'
   condition: selection and not filter_known
+validation:
+  atomic: T1003.001
+  fire: |-
+    procdump.exe -accepteula -ma lsass.exe C:\Windows\Temp\l.dmp
 falsepositives:
   - Your EDR/AV legitimately reading LSASS; add its image to filter_known
 level: high

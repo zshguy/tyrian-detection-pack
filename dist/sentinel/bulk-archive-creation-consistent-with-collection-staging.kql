@@ -1,6 +1,8 @@
 // Bulk Archive Creation Consistent With Collection Staging
 // Detects command-line archive tools compressing user or share directories, which is how data is staged before it leaves. Pair with an egress rule to turn this into a high-confidence exfiltration signal.
-// techniques: T1560.001   severity: medium
+// techniques: T1560.001   severity: medium   status: experimental
+// validate: Atomic Red Team T1560.001
+//   7z.exe a -hp'pass' C:\Windows\Temp\loot.7z C:\Users\<user>\Documents
 // source: rules/exfiltration/archive-staging-for-exfil.yml  (GENERATED, do not edit by hand)
 Event
 | where (((NewProcessName endswith "\\7z.exe" or NewProcessName endswith "\\rar.exe" or NewProcessName endswith "\\winrar.exe") and (CommandLine contains " a " or CommandLine contains " -hp")) and ((CommandLine has_any (dynamic(["\\Users\\", "\\Documents", "\\Desktop", "\\Shares"])))))

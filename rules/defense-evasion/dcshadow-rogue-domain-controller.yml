@@ -1,0 +1,40 @@
+title: DCShadow Rogue Domain Controller Registration
+id: e283b4f1-05a2-46dd-b1c9-tyrian000060
+status: experimental
+description: >
+  Detects registration of a new nTDSDSA object or an SPN change that makes a host
+  look like a domain controller. DCShadow registers a rogue DC just long enough to
+  push a directory replication, which writes attacker-chosen attributes into AD
+  without generating the directory-change events a normal write would. Catching the
+  registration is the reliable way to see it, because the changes themselves are
+  designed not to be logged.
+references:
+  - https://attack.mitre.org/techniques/T1207/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  ntdsdsa_object:
+    EventID: 5137
+    ObjectClass: 'nTDSDSA'
+  dc_spn_added:
+    EventID: 5136
+    AttributeLDAPDisplayName: 'servicePrincipalName'
+    AttributeValue|contains:
+      - 'GC/'
+      - 'E3514235-4B06-11D1-AB04-00C04FC2DCD2'
+  condition: ntdsdsa_object or dc_spn_added
+validation:
+  atomic: T1207
+  fire: |-
+    mimikatz "lsadump::dcshadow /object:target /attribute:primaryGroupID /value:512"
+    mimikatz "lsadump::dcshadow /push"
+falsepositives:
+  - Promotion of a genuine new domain controller, which is a planned event
+level: critical
+tags:
+  - attack.defense_evasion
+  - attack.persistence
+  - attack.t1207

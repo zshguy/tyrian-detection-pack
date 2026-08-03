@@ -1,0 +1,43 @@
+title: ADCS Certificate Requested With an Arbitrary Subject Alternative Name
+id: 6a0b3c1f-8d29-4e5c-9741-tyrian000052
+status: experimental
+description: >
+  Detects a certificate request that carries a caller-supplied Subject Alternative
+  Name (ESC1). If a template allows the enrollee to specify the SAN and permits
+  client authentication, any user who can enroll can request a certificate that
+  says they are the domain administrator, then authenticate with it. The
+  certificate stays valid until it expires, which is why this beats a password
+  reset as a persistence route.
+references:
+  - https://attack.mitre.org/techniques/T1649/
+  - https://posts.specterops.io/certified-pre-owned-d95910965cd2
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - 4886   # certificate services received a request
+      - 4887   # certificate services approved a request and issued a certificate
+  san_supplied:
+    Attributes|contains:
+      - 'SAN:'
+      - 'subjectaltname'
+      - 'upn='
+  condition: selection and san_supplied
+validation:
+  atomic: T1649
+  fire: |-
+    certipy req -u user@domain -p pass -target ca.domain -template VulnTemplate -upn administrator@domain
+    Certify.exe request /ca:ca.domain\CA-NAME /template:VulnTemplate /altname:administrator
+falsepositives:
+  - Templates that legitimately require a SAN, such as web server or SCCM certificates
+  - Automated enrollment that supplies a UPN for service accounts
+level: critical
+tags:
+  - attack.credential_access
+  - attack.privilege_escalation
+  - attack.persistence
+  - attack.t1649

@@ -1,0 +1,35 @@
+title: Linux Execution From a World-Writable Directory
+id: 9d3e6f42-b05c-4183-ac74-tyrian000039
+status: experimental
+description: >
+  Detects binaries executed out of /tmp, /var/tmp or /dev/shm. Packages install to
+  /usr and /opt, so sustained execution from a scratch directory is either a
+  careless admin or a payload that landed where any user can write. /dev/shm is
+  the strongest of the three: it is memory-backed and leaves no disk artefact.
+references:
+  - https://attack.mitre.org/techniques/T1036/005/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_exec'
+    Image|startswith:
+      - '/tmp/'
+      - '/var/tmp/'
+      - '/dev/shm/'
+  condition: selection
+validation:
+  atomic: T1036.005
+  fire: |-
+    cp /bin/echo /dev/shm/updater && /dev/shm/updater staged
+falsepositives:
+  - Package build systems and CI runners that compile and run out of /tmp
+  - Some installers unpack a helper binary to /tmp and execute it once
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.execution
+  - attack.t1036.005

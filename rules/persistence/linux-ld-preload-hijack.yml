@@ -1,0 +1,33 @@
+title: Linux Shared Library Hijack via ld.so.preload
+id: f394c5a8-16b2-47e9-02da-tyrian000045
+status: experimental
+description: >
+  Detects writes to /etc/ld.so.preload or the ld.so.conf.d directory. A library
+  listed in ld.so.preload is loaded into every dynamically linked process on the
+  host, which is how most Linux userland rootkits hook libc and hide their own
+  files and connections. This file does not exist on a stock system, so its
+  creation is close to a binary indicator.
+references:
+  - https://attack.mitre.org/techniques/T1574/006/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_ldpreload'
+  condition: selection
+validation:
+  atomic: T1574.006
+  fire: |-
+    echo /dev/shm/libhook.so > /etc/ld.so.preload
+falsepositives:
+  - A small number of commercial agents legitimately preload a library
+  - Package installs adding a path under ld.so.conf.d
+level: critical
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.defense_evasion
+  - attack.t1574.006

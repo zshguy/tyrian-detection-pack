@@ -1,0 +1,10 @@
+// Remote Thread Created in Another Process
+// Detects a thread created in a process the caller does not own, with the start address resolving into a module associated with injection or into no module at all. Injecting into a signed, expected process is how an implant inherits its network reputation and survives its own dropper exiting.
+// techniques: T1055,T1055.003   severity: high   status: experimental
+// validate: Atomic Red Team T1055
+//   Invoke-Mimikatz style injection, or any tool calling OpenProcess +
+//   VirtualAllocEx + WriteProcessMemory + CreateRemoteThread against notepad.exe.
+//   Atomic Red Team T1055 includes a minimal C# injector for this.
+// source: rules/defense-evasion/process-injection-createremotethread.yml  (GENERATED, do not edit by hand)
+Event
+| where ((((EventID =~ "8")) and ((TargetImage endswith "\lsass.exe" or TargetImage endswith "\explorer.exe" or TargetImage endswith "\svchost.exe" or TargetImage endswith "\winlogon.exe" or TargetImage endswith "\notepad.exe" or TargetImage endswith "\rundll32.exe"))) and not ((SourceImage endswith "\csrss.exe" or SourceImage endswith "\wininit.exe" or SourceImage endswith "\services.exe" or SourceImage endswith "\MsMpEng.exe")))

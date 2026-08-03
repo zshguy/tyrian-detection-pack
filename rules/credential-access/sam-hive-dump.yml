@@ -22,6 +22,11 @@ detection:
       - 'hklm\\system'
       - 'hklm\\security'
   condition: selection and hives
+validation:
+  atomic: T1003.002
+  fire: |-
+    reg save HKLM\SAM C:\Windows\Temp\sam.hiv
+    reg save HKLM\SYSTEM C:\Windows\Temp\sys.hiv
 falsepositives:
   - Backup tooling that exports hives, which should run from a known path
 level: critical

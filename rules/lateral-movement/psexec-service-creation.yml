@@ -24,6 +24,10 @@ detection:
       - '\Windows\Temp\'
       - '-s cmd'
   condition: selection and (service_name or image_path)
+validation:
+  atomic: T1021.002
+  fire: |-
+    PsExec.exe \\<host> -accepteula cmd.exe
 falsepositives:
   - Some legitimate management tools install transient services; baseline yours
 level: high

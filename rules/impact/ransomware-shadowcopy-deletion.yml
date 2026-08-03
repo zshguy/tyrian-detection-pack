@@ -29,6 +29,10 @@ detection:
       - 'Win32_ShadowCopy'
       - 'Delete'
   condition: vssadmin or wmic or powershell
+validation:
+  atomic: T1490
+  fire: |-
+    vssadmin.exe delete shadows /all /quiet
 falsepositives:
   - Rare backup/maintenance scripts; alert and verify rather than suppress
 level: high

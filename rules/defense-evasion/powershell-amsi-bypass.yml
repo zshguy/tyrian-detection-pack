@@ -20,6 +20,11 @@ detection:
       - 'AmsiScanBuffer'
       - 'System.Management.Automation.AmsiUtils'
   condition: selection
+validation:
+  atomic: T1562.001
+  fire: |-
+    Run the classic amsiInitFailed reflection one-liner in a PowerShell session with
+    script block logging (EID 4104) enabled.
 falsepositives:
   - Security research and detection engineering on the host itself
 level: critical

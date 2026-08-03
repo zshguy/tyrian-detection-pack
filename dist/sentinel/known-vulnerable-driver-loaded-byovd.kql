@@ -1,0 +1,9 @@
+// Known Vulnerable Driver Loaded (BYOVD)
+// Detects loading of drivers repeatedly abused to get kernel-level code execution from an administrator context. Bring-your-own-vulnerable-driver is the standard way ransomware crews disable endpoint protection: the driver is signed and legitimate, so it loads cleanly, and the vulnerability inside it is used to kill protected processes. Keep this list current against the Microsoft vulnerable driver blocklist and LOLDrivers.
+// techniques: T1068,T1562.001   severity: critical   status: experimental
+// validate: Atomic Red Team T1068
+//   sc create tyriantest binPath= C:\Windows\Temp\RTCore64.sys type= kernel
+//   sc start tyriantest
+// source: rules/privilege-escalation/vulnerable-driver-loaded-byovd.yml  (GENERATED, do not edit by hand)
+Event
+| where ((EventID =~ "6") and (ImageLoaded endswith "\iqvw64e.sys" or ImageLoaded endswith "\RTCore64.sys" or ImageLoaded endswith "\gdrv.sys" or ImageLoaded endswith "\dbutil_2_3.sys" or ImageLoaded endswith "\DBUtilDrv2.sys" or ImageLoaded endswith "\procexp152.sys" or ImageLoaded endswith "\truesight.sys" or ImageLoaded endswith "\viragt64.sys" or ImageLoaded endswith "\aswArPot.sys" or ImageLoaded endswith "\mhyprot2.sys"))

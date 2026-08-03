@@ -1,0 +1,8 @@
+// AdminSDHolder Container Modified
+// Detects a change to the AdminSDHolder object. Its ACL is stamped onto every protected group member (Domain Admins, Enterprise Admins and friends) by the SDProp task roughly every hour, so an entry added here becomes an entry on every privileged account, and re-appears after a defender removes it. It is the closest thing Active Directory has to a self-healing backdoor.
+// techniques: T1098,T1222.001   severity: critical   status: experimental
+// validate: Atomic Red Team T1098
+//   dsacls "CN=AdminSDHolder,CN=System,DC=tyrian,DC=lab" /G tyrian\attacker:GA
+// source: rules/persistence/adminsdholder-acl-modification.yml  (GENERATED, do not edit by hand)
+SecurityEvent
+| where ((EventID =~ "5136" or EventID =~ "4662") and (ObjectDN contains "CN=AdminSDHolder"))

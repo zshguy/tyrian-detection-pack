@@ -20,6 +20,10 @@ detection:
       - 'Add-MpPreference -ExclusionPath'
       - 'DisableAntiSpyware'
   condition: cmdline
+validation:
+  atomic: T1562.001
+  fire: |-
+    Set-MpPreference -DisableRealtimeMonitoring $true
 falsepositives:
   - Deliberate exclusions during software installation, which should be approved
 level: critical

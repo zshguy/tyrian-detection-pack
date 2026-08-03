@@ -1,0 +1,9 @@
+// File Transfer via BITS
+// Detects bitsadmin or the PowerShell BITS cmdlets being used to move a file. The Background Intelligent Transfer Service is a signed Windows component that downloads on behalf of a caller, so the traffic comes from a trusted process, the job survives reboots, and the transfer continues after the calling process exits. That combination is why it is a durable download and persistence primitive.
+// techniques: T1197,T1105   severity: medium   status: experimental
+// validate: Atomic Red Team T1197
+//   bitsadmin /transfer tyriantest /download /priority high http://127.0.0.1/a.txt C:\Windows\Temp\a.txt
+//   Start-BitsTransfer -Source http://127.0.0.1/a.txt -Destination C:\Windows\Temp\a.txt
+// source: rules/command-and-control/bitsadmin-transfer-job.yml  (GENERATED, do not edit by hand)
+Event
+| where (((NewProcessName endswith "\bitsadmin.exe") and (CommandLine has_any (dynamic(["/transfer", "/addfile", "/setnotifycmdline"])))) or ((CommandLine contains "Start-BitsTransfer" and CommandLine contains "-Source")))

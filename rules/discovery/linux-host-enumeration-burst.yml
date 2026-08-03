@@ -1,0 +1,47 @@
+title: Linux Host Enumeration Burst
+id: 48e91afd-6b07-4c3a-572f-tyrian000050
+status: experimental
+description: >
+  Detects a rapid sequence of situational-awareness commands from one host. No
+  single one of these is suspicious, which is the point: the signal is the burst.
+  A human landing on an unfamiliar box runs five of them in under a minute, while
+  a legitimate user runs one, occasionally, with a reason.
+references:
+  - https://attack.mitre.org/techniques/T1082/
+  - https://attack.mitre.org/techniques/T1087/001/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  selection:
+    AuditKey: 'tyrian_exec'
+    Image|endswith:
+      - '/whoami'
+      - '/id'
+      - '/uname'
+      - '/hostname'
+      - '/lastlog'
+      - '/last'
+      - '/w'
+      - '/netstat'
+      - '/ss'
+      - '/lsof'
+      - '/crontab'
+  timeframe: 5m
+  count: 5
+  groupby: host
+  condition: selection
+validation:
+  atomic: T1082
+  fire: |-
+    whoami; id; uname -a; hostname; last -n 5; ss -tulpn
+falsepositives:
+  - Administrators troubleshooting, who legitimately run exactly this sequence
+  - Monitoring and inventory agents, if they run under a login auid
+level: medium
+tags:
+  - attack.discovery
+  - attack.t1082
+  - attack.t1087.001

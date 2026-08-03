@@ -1,0 +1,35 @@
+title: Linux Remote Payload Piped Directly Into a Shell
+id: 8c2d5e31-af4b-4072-9b63-tyrian000038
+status: experimental
+description: >
+  Detects the curl-pipe-bash install pattern, where a script is fetched over the
+  network and executed without ever touching disk under a name anyone reviewed.
+  Legitimate installers do this too, which is exactly why attackers can hide in it,
+  so treat a hit as "what was the URL" rather than as a verdict.
+references:
+  - https://attack.mitre.org/techniques/T1059/004/
+  - https://attack.mitre.org/techniques/T1105/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: linux
+  service: auditd
+detection:
+  pipe_to_shell:
+    AuditKey: 'tyrian_exec'
+    ExecveA2|re: '(curl|wget)[^|]*\|\s*(sudo\s+)?(ba|z|k)?sh'
+  condition: pipe_to_shell
+validation:
+  atomic: T1059.004
+  fire: |-
+    sh -c 'curl -s http://127.0.0.1/install.sh | bash'
+    sh -c 'wget -qO- http://127.0.0.1/install.sh | sh'
+falsepositives:
+  - Genuine vendor install scripts (rustup, nvm, docker convenience script)
+  - Configuration management bootstrapping a node
+level: medium
+tags:
+  - attack.execution
+  - attack.command_and_control
+  - attack.t1059.004
+  - attack.t1105

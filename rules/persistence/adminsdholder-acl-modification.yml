@@ -1,0 +1,36 @@
+title: AdminSDHolder Container Modified
+id: bf50816e-d27f-43a2-ec96-tyrian000057
+status: experimental
+description: >
+  Detects a change to the AdminSDHolder object. Its ACL is stamped onto every
+  protected group member (Domain Admins, Enterprise Admins and friends) by the
+  SDProp task roughly every hour, so an entry added here becomes an entry on every
+  privileged account, and re-appears after a defender removes it. It is the closest
+  thing Active Directory has to a self-healing backdoor.
+references:
+  - https://attack.mitre.org/techniques/T1098/
+  - https://attack.mitre.org/techniques/T1222/001/
+author: Tyrian
+date: 2026/08/03
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID:
+      - 5136   # directory object modified
+      - 4662   # operation performed on an object
+    ObjectDN|contains: 'CN=AdminSDHolder'
+  condition: selection
+validation:
+  atomic: T1098
+  fire: |-
+    dsacls "CN=AdminSDHolder,CN=System,DC=tyrian,DC=lab" /G tyrian\attacker:GA
+falsepositives:
+  - Deliberate tiering or delegation work by an identity team, which should be change-controlled
+level: critical
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1098
+  - attack.t1222.001
