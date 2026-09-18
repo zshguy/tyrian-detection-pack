@@ -237,6 +237,34 @@ class Unsupported(Exception):
     """Raised when a construct cannot be translated faithfully."""
 
 
+# Set from --source-url / --source-license when compiling somebody elses corpus.
+# Redistributing converted rules is explicitly allowed by the Detection Rule
+# License that SigmaHQ uses, provided the author travels with the rule, a link
+# back is included where practicable, and the license is named. All three are
+# emitted into the compiled output rather than living only in a README, because
+# the compiled file is the thing that gets copied onto a manager.
+ATTRIBUTION = {"url_template": None, "license": None, "corpus": None}
+
+
+def source_link(rule: dict) -> "str | None":
+    """Link back to the original rule, if a --source-url template was given."""
+    template = ATTRIBUTION.get("url_template")
+    if not template:
+        return None
+    return template.replace("{path}", rule.get("_relpath") or rule.get("_path", ""))
+
+
+def attribution_header() -> list:
+    """Lines naming where the rules came from and under what terms."""
+    if not (ATTRIBUTION.get("corpus") or ATTRIBUTION.get("license")):
+        return []
+    out = [""]
+    if ATTRIBUTION.get("license"):
+        out.append(f"  The rules remain the work of their original authors, under {ATTRIBUTION['license']}.")
+        out.append("  Each rule below carries its author and a link back to the original.")
+    return out
+
+
 # --------------------------------------------------------------------------
 # Condition parsing. Produces a small AST so each backend renders from the same
 # structure rather than doing string surgery on the condition text.
@@ -482,6 +510,14 @@ def load_rules(inputs=None) -> list[dict]:
                 if not isinstance(doc, dict) or "detection" not in doc:
                     continue
                 doc["_path"] = shown
+                # Relative to the corpus root, so a --source-url template can
+                # build a link back to the original rule. Attribution under the
+                # Detection Rule License wants a URI to the specific rule where
+                # that is practicable, and this is what makes it practicable.
+                try:
+                    doc["_relpath"] = path.resolve().relative_to(root.resolve()).as_posix()
+                except ValueError:
+                    doc["_relpath"] = path.name
                 doc["_tactic"] = tactic_of(doc, path)
                 rules.append(doc)
     return rules
@@ -817,20 +853,40 @@ def _wazuh_info(rule: dict) -> str | None:
     return f"{head}: {' | '.join(cmds)}" if cmds else head
 
 
+def _wazuh_author(rule: dict) -> str | None:
+    """Rule author, carried onto the manager so attribution survives the
+    conversion. The Detection Rule License asks that alerts based on a rule keep
+    identifying its author, so this belongs in the rule, not in a README."""
+    author = rule.get("author")
+    if isinstance(author, list):
+        author = ", ".join(str(a) for a in author)
+    author = str(author or "").strip()
+    return f"Rule by {author}" if author else None
+
+
 def render_wazuh(rules: list[dict]) -> str:
-    out = [
-        "<!--",
-        "  Tyrian Detection Pack - Wazuh rules (GENERATED, do not edit by hand).",
-        "  Source of truth: rules/**.yml",
-        "  Regenerate:      python tools/sigma_compile.py (wazuh backend, see README.md)",
+    # When compiling somebody elses corpus the header must not imply the rules
+    # are ours. Provenance in a generated artifact is not a courtesy, it is the
+    # only thing telling whoever finds this file on a manager where it came from.
+    if ATTRIBUTION.get("corpus"):
+        provenance = [
+            f"  Wazuh rules compiled from {ATTRIBUTION['corpus']}",
+            "  by the Tyrian Detection Pack compiler (GENERATED, do not edit by hand).",
+            "  https://github.com/zshguy/tyrian-detection-pack",
+        ]
+    else:
+        provenance = [
+            "  Tyrian Detection Pack - Wazuh rules (GENERATED, do not edit by hand).",
+            "  Source of truth: rules/**.yml",
+            "  Regenerate:      python tools/sigma_compile.py (wazuh backend, see README.md)",
+        ]
+    out = ["<!--"] + provenance + [
         "",
         "  Install:  copy into /var/ossec/etc/rules/local_rules.xml on the manager, then",
         "            /var/ossec/bin/wazuh-control restart",
         "  IDs use the 100000+ local range Wazuh reserves for you.",
         "  Tune thresholds to your environment before relying on these.",
-        "",
-        "  Each rule carries an <info> line naming the Atomic Red Team technique and a",
-        "  command that triggers it, so you can prove the rule fires before trusting it.",
+    ] + attribution_header() + [
         "-->",
         "",
     ]
@@ -863,7 +919,8 @@ def render_wazuh(rules: list[dict]) -> str:
         techniques = [t.split(".", 1)[1].upper() for t in rule["tags"] if str(t).startswith("attack.t")]
 
         agg = rule_aggregation(rule)
-        out.append("<!-- " + _comment_safe(f'{rule["title"]}  [{rule["_path"]}]'))
+        shown_path = rule.get("_relpath") if ATTRIBUTION.get("corpus") else None
+        out.append("<!-- " + _comment_safe(f'{rule["title"]}  [{shown_path or rule["_path"]}]'))
         out.append(f'     status: {rule.get("status", "experimental")}')
         if not known_logsource:
             ls = rule.get("logsource", {}) or {}
@@ -876,6 +933,8 @@ def render_wazuh(rules: list[dict]) -> str:
                        f"{len(variants)} sibling rules below (any one of them firing means a hit).")
         out.append("-->")
         info = _wazuh_info(rule)
+        credit = _wazuh_author(rule)
+        link = source_link(rule)
         platform = platform_of(rule)
 
         for idx, (positives, negatives) in enumerate(variants, start=1):
@@ -913,8 +972,12 @@ def render_wazuh(rules: list[dict]) -> str:
                     same = by if by == "host" else resolve_field("wazuh", platform, by)
                     out.append(f"    <same_field>{same}</same_field>")
             out.append(f"    <description>{sx.escape(label)}</description>")
+            if credit:
+                out.append(f'    <info type="text">{sx.escape(credit)}</info>')
             if info:
                 out.append(f'    <info type="text">{sx.escape(info)}</info>')
+            if link:
+                out.append(f'    <info type="link">{sx.escape(link)}</info>')
             if techniques:
                 out.append("    <mitre>")
                 for t in techniques:
@@ -1450,6 +1513,21 @@ def main() -> int:
              "pack. Point it at any Sigma corpus, for instance a SigmaHQ checkout.",
     )
     ap.add_argument(
+        "--source-url", metavar="TEMPLATE",
+        help="link template back to each original rule, with {path} standing in for the "
+             "rule path relative to --input. For example "
+             "https://github.com/SigmaHQ/sigma/blob/master/rules/{path}",
+    )
+    ap.add_argument(
+        "--source-license", metavar="TEXT",
+        help="license the source rules are under, named in the compiled output "
+             "(for example \"the Detection Rule License 1.1\").",
+    )
+    ap.add_argument(
+        "--source-name", metavar="TEXT",
+        help="human name of the corpus being compiled, named in the compiled output.",
+    )
+    ap.add_argument(
         "--summary", metavar="PATH",
         help="write a JSON summary of the run (counts and refusal reasons) to PATH. "
              "Intended for CI, dashboards and tracking translation drift over time.",
@@ -1470,6 +1548,9 @@ def main() -> int:
 
     # Somebody elses rules are screened per rule; ours are all-or-nothing.
     strict = args.strict if args.strict is not None else (args.input is None)
+    ATTRIBUTION["url_template"] = args.source_url
+    ATTRIBUTION["license"] = args.source_license
+    ATTRIBUTION["corpus"] = args.source_name
     where = ", ".join(args.input) if args.input else RULES_DIR.as_posix()
 
     rules = load_rules(args.input)

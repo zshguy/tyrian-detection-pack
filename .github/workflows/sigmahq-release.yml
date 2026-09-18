@@ -1,0 +1,205 @@
+name: SigmaHQ ruleset
+
+# Wazuh has no Sigma backend, so a Wazuh operator who wants SigmaHQ detections
+# has to build a toolchain before they get a single rule. This job removes that
+# step: it compiles the current SigmaHQ corpus and publishes the result as a
+# ready-to-deploy ruleset at a stable URL, refreshed weekly.
+#
+# SigmaHQ rules are under the Detection Rule License 1.1, which permits
+# redistribution in converted form provided the author travels with the rule, a
+# link back is included, and the license is named. All three are compiled into
+# the output itself, not just stated here.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"        # Mondays, 06:17 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "tools/sigma_compile.py"
+      - ".github/workflows/sigmahq-release.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sigmahq-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install pyyaml
+
+      - name: Check out SigmaHQ
+        uses: actions/checkout@v4
+        with:
+          repository: SigmaHQ/sigma
+          path: .sigmahq
+          fetch-depth: 1
+
+      - name: Record the exact source revision
+        id: src
+        run: |
+          set -euo pipefail
+          cd .sigmahq
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "date=$(git log -1 --format=%cd --date=short)" >> "$GITHUB_OUTPUT"
+
+      - name: Compile
+        id: build
+        env:
+          SRC_NAME: SigmaHQ (https://github.com/SigmaHQ/sigma)
+          SRC_LICENSE: the Detection Rule License 1.1 (https://github.com/SigmaHQ/Detection-Rule-License)
+          SRC_URL: https://github.com/SigmaHQ/sigma/blob/master/rules/{path}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+
+          common=(--input .sigmahq/rules
+                  --source-name "${SRC_NAME}"
+                  --source-license "${SRC_LICENSE}"
+                  --source-url "${SRC_URL}")
+
+          python tools/sigma_compile.py "${common[@]}" --backend wazuh \
+            --out out/wazuh --summary out/wazuh.json
+          python tools/sigma_compile.py "${common[@]}" --backend splunk \
+            --out out/splunk --summary out/splunk.json
+          python tools/sigma_compile.py "${common[@]}" --backend sentinel \
+            --out out/sentinel --summary out/sentinel.json
+          python tools/sigma_compile.py "${common[@]}" --backend navigator \
+            --out out/navigator
+          python tools/sigma_compile.py "${common[@]}" --backend report \
+            | tee out/TRANSLATION-REPORT.md
+
+          mv out/wazuh/local_rules.xml out/sigmahq-wazuh-rules.xml
+          mv out/splunk/tyrian_detections.conf out/sigmahq-splunk.conf
+          mv out/navigator/*.json out/sigmahq-navigator-layer.json
+          (cd out/sentinel && zip -qr ../sigmahq-sentinel-kql.zip .)
+
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          d = json.load(open("out/wazuh.json"))
+          xml = open("out/sigmahq-wazuh-rules.xml", encoding="utf-8").read()
+          print(f"translated={d['translated']}")
+          print(f"offered={d['offered']}")
+          print(f"declined={d['declined']}")
+          print(f"pct={round(d['rate'] * 100)}")
+          print(f"emitted={xml.count('<rule id=')}")
+          PY
+
+      # Wazuh loads local_rules.xml with libxml2 and rejects the ENTIRE ruleset
+      # on a single parse error. Publishing a file that does that would take a
+      # manager's detections offline, so it is parsed before it ships.
+      - name: The published XML must be well-formed
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          xml = open("out/sigmahq-wazuh-rules.xml", encoding="utf-8").read()
+          ET.fromstring(f"<root>{xml}</root>")
+          print(f"parsed {xml.count('<rule id=')} rules, well-formed")
+          PY
+
+      - name: Write the attribution notice
+        env:
+          SHA: ${{ steps.src.outputs.sha }}
+        run: |
+          cat > out/NOTICE.txt <<EOF
+          These files are compiled from the SigmaHQ rule corpus.
+
+          Source:    https://github.com/SigmaHQ/sigma
+          Revision:  ${SHA}
+          License:   Detection Rule License (DRL) 1.1
+                     https://github.com/SigmaHQ/Detection-Rule-License
+
+          The detections are the work of their original authors. Each compiled rule
+          carries its author and a link back to the original rule, so attribution
+          survives deployment rather than stopping at this file.
+
+          The conversion to Wazuh, Splunk and Sentinel was produced by the Tyrian
+          Detection Pack compiler (MIT):
+          https://github.com/zshguy/tyrian-detection-pack
+
+          Rules that could not be translated faithfully were refused rather than
+          approximated. TRANSLATION-REPORT.md lists every refusal with its reason.
+
+          No warranty. Tune before you trust: thresholds and paths in any public rule
+          set are starting points, not settings for your estate.
+          EOF
+          cat out/NOTICE.txt
+
+      - name: Publish the rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHORT: ${{ steps.src.outputs.short }}
+          SRC_DATE: ${{ steps.src.outputs.date }}
+          TRANSLATED: ${{ steps.build.outputs.translated }}
+          OFFERED: ${{ steps.build.outputs.offered }}
+          DECLINED: ${{ steps.build.outputs.declined }}
+          PCT: ${{ steps.build.outputs.pct }}
+          EMITTED: ${{ steps.build.outputs.emitted }}
+        run: |
+          set -euo pipefail
+          notes=$(cat <<EOF
+          **${EMITTED} Wazuh rules compiled from SigmaHQ, ready to deploy.**
+
+          Wazuh has no Sigma backend, so this is the corpus already converted for you.
+
+          \`\`\`bash
+          curl -LO https://github.com/zshguy/tyrian-detection-pack/releases/download/sigmahq-latest/sigmahq-wazuh-rules.xml
+          sudo cp sigmahq-wazuh-rules.xml /var/ossec/etc/rules/local_rules.xml
+          sudo /var/ossec/bin/wazuh-control restart
+          \`\`\`
+
+          | | |
+          |---|---|
+          | SigmaHQ revision | \`${SHORT}\` (${SRC_DATE}) |
+          | Rules translated | ${TRANSLATED} of ${OFFERED} (${PCT}%) |
+          | Wazuh rules emitted | ${EMITTED} |
+          | Refused, with reasons | ${DECLINED} |
+
+          More rules come out than go in because a Sigma disjunction cannot live inside a
+          single Wazuh rule, so it is expanded into sibling rules. Collapsing it into one
+          rule is the common conversion bug: it silently becomes a conjunction and can
+          never fire.
+
+          **Read TRANSLATION-REPORT.md before deploying.** It lists every rule that was
+          refused and why. Nothing was approximated to make the number look better.
+
+          **This is a lot of detections at once.** Rule IDs run from 100100 upward, so
+          check they do not collide with local rules you already have, and expect to tune.
+
+          Rules are the work of their SigmaHQ authors under the
+          [Detection Rule License 1.1](https://github.com/SigmaHQ/Detection-Rule-License);
+          each compiled rule carries its author and a link back to the original. See NOTICE.txt.
+
+          Regenerated weekly from SigmaHQ \`master\`.
+          EOF
+          )
+
+          if gh release view sigmahq-latest >/dev/null 2>&1; then
+            gh release edit sigmahq-latest --notes "$notes" --title "SigmaHQ for Wazuh (${SRC_DATE})"
+          else
+            gh release create sigmahq-latest --title "SigmaHQ for Wazuh (${SRC_DATE})" \
+              --notes "$notes" --latest=false
+          fi
+
+          gh release upload sigmahq-latest --clobber \
+            out/sigmahq-wazuh-rules.xml \
+            out/sigmahq-splunk.conf \
+            out/sigmahq-sentinel-kql.zip \
+            out/sigmahq-navigator-layer.json \
+            out/TRANSLATION-REPORT.md \
+            out/NOTICE.txt
+
+      - name: Job summary
+        run: cat out/TRANSLATION-REPORT.md >> "$GITHUB_STEP_SUMMARY"

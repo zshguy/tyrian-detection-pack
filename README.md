@@ -1,30 +1,47 @@
 # Tyrian Detection Pack
 
-**A Sigma compiler that takes Wazuh seriously, and 67 rules to prove it works.**
+**Sigma detections, compiled to Wazuh properly.**
 
 [![validate + compile](https://github.com/zshguy/tyrian-detection-pack/actions/workflows/ci.yml/badge.svg)](https://github.com/zshguy/tyrian-detection-pack/actions/workflows/ci.yml)
-[![SigmaHQ coverage](https://img.shields.io/badge/SigmaHQ-96%25%20compiles%20to%20Wazuh-6d28d9)](#it-works-on-rules-that-are-not-ours)
+[![SigmaHQ ruleset](https://github.com/zshguy/tyrian-detection-pack/actions/workflows/sigmahq-release.yml/badge.svg)](https://github.com/zshguy/tyrian-detection-pack/releases/tag/sigmahq-latest)
+[![SigmaHQ coverage](https://img.shields.io/badge/SigmaHQ-96%25%20compiles%20to%20Wazuh-6d28d9)](#does-it-work-on-rules-that-are-not-ours)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-pySigma has solid Splunk and Sentinel backends. Wazuh, which a very large number
-of small teams, homelabs and MSSPs actually run, has none. So people translate
-Sigma into `<field>` regex XML by hand, and that translation is where the bugs
-live: a mistranslated rule loads cleanly, sits in the manager looking healthy,
-and never fires.
+## Get 3,600 SigmaHQ detections onto your Wazuh manager
 
-This repo is a compiler that does that translation honestly, plus a corpus of
-ATT&CK-mapped rules to prove it produces something that works.
+Wazuh has no Sigma backend, so getting community detections into it normally
+means building a toolchain first. Here is the corpus already converted:
+
+```bash
+curl -LO https://github.com/zshguy/tyrian-detection-pack/releases/download/sigmahq-latest/sigmahq-wazuh-rules.xml
+sudo cp sigmahq-wazuh-rules.xml /var/ossec/etc/rules/local_rules.xml
+sudo /var/ossec/bin/wazuh-control restart
+```
+
+[**Download the ruleset**](https://github.com/zshguy/tyrian-detection-pack/releases/tag/sigmahq-latest)
+(Splunk `.conf` and Sentinel KQL are in the same release). Regenerated weekly
+from SigmaHQ `master`, with a translation report listing every rule that was
+refused and why.
+
+That is a lot of detections to switch on at once. Rule IDs start at 100100, so
+check for collisions with local rules you already have, read the report, and
+expect to tune. The rules remain the work of their SigmaHQ authors under the
+[Detection Rule License 1.1](https://github.com/SigmaHQ/Detection-Rule-License);
+each compiled rule carries its author and a link back to the original.
+
+---
+
+## Or compile your own
 
 ```bash
 git clone https://github.com/zshguy/tyrian-detection-pack
 cd tyrian-detection-pack && pip install pyyaml
 
-# Compile the bundled rules
+# The rules in this repo
 python tools/sigma_compile.py --backend wazuh --out dist/wazuh
 
-# Or point it at anybody else's Sigma
-git clone --depth 1 https://github.com/SigmaHQ/sigma /tmp/sigma
-python tools/sigma_compile.py --input /tmp/sigma/rules --backend wazuh --out /tmp/wazuh
+# Or any Sigma corpus at all
+python tools/sigma_compile.py --input /path/to/sigma/rules --backend wazuh --out dist/wazuh
 ```
 
 Backends: `wazuh`, `splunk`, `sentinel`, `navigator`. MIT licensed. No signup,
@@ -32,10 +49,41 @@ no gated download, no "request a demo" wall.
 
 ---
 
-## It works on rules that are not ours
+## Why another one of these
+
+pySigma, which maintains the backends most people use, has
+[no Wazuh backend](https://github.com/SigmaHQ/pySigma/discussions/257). So Wazuh
+operators hand-translate Sigma into `<field>` regex XML, and hand translation is
+where detections die quietly: the rule loads, the manager is healthy, and it can
+never match.
+
+**Prior art, because this is not a new idea.**
+[theflakes/sigma_to_wazuh](https://github.com/theflakes/sigma_to_wazuh) is the
+most complete previous attempt and is worth your time; its author has since
+moved to a Go rewrite, [StoW](https://github.com/theflakes/StoW).
+[sigWah](https://github.com/SanWieb/sigWah) did the same job in 2020 and is
+archived. All of them run into the same wall, and `sigma_to_wazuh` says so in
+its own README:
+
+> Some logic conversion is still broken due to the complexities of converting
+> Sigma OR logic into Wazuh OR logic unfortunately.
+
+That wall is the problem worth solving. A Wazuh rule is **one flat conjunction**
+of `<field>` tests, so it cannot hold an `or` at all. Collapse a disjunction into
+one rule and it silently becomes an `and`: our own shadow-copy deletion rule
+spent months requiring `Image` to be `vssadmin.exe` *and* `wmic.exe`
+simultaneously. It could never have fired.
+
+The fix is to rewrite the condition into disjunctive normal form and emit one
+sibling rule per branch, which is why 3,144 Sigma rules come out as 3,633 Wazuh
+rules. Everything else here follows from taking that kind of failure seriously.
+
+---
+
+## Does it work on rules that are not ours
 
 The interesting question about a converter is not whether it handles the corpus
-it shipped with. So here it is against all of SigmaHQ:
+it shipped with. So, against all of SigmaHQ:
 
 | Backend | Translated | Declined | Rate | Rules emitted |
 |---|---:|---:|---:|---:|
@@ -43,12 +91,10 @@ it shipped with. So here it is against all of SigmaHQ:
 | Splunk | 3,027 | 117 | **96%** | 3,027 |
 | Sentinel | 2,876 | 268 | **91%** | 2,876 |
 
-*3,144 rules, SigmaHQ `main`. Wazuh emits more rules than it consumes because a
-disjunction becomes one sibling rule per branch.*
-
 Run it yourself, it takes about a minute:
 
 ```bash
+git clone --depth 1 https://github.com/SigmaHQ/sigma /tmp/sigma
 python tools/sigma_compile.py --input /tmp/sigma/rules --backend report
 ```
 
