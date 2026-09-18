@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import sys
@@ -132,6 +133,21 @@ WAZUH_LINUX_FIELDS = {
     "Pid": "audit.pid",
     "Ppid": "audit.ppid",
     "Exit": "audit.exit",
+    # auditd names its own fields in lower case, and Sigma rules written against
+    # auditd use those names directly rather than the Sigma-style ones above.
+    # They are the same fields, so they are listed rather than refused. Lookup is
+    # case-insensitive on top of this, which covers `type` against `Type`.
+    "exe": "audit.exe",
+    "key": "audit.key",
+    "name": "audit.file.name",
+    "dir": "audit.directory.name",
+    "a0": "audit.execve.a0",
+    "a1": "audit.execve.a1",
+    "a2": "audit.execve.a2",
+    "a3": "audit.execve.a3",
+    "a4": "audit.execve.a4",
+    "a5": "audit.execve.a5",
+    "ExecveA5": "audit.execve.a5",
 }
 
 # Splunk's auditd fields come from the Splunk Add-on for Unix and Linux
@@ -160,6 +176,19 @@ SPLUNK_LINUX_FIELDS = {
     "Pid": "pid",
     "Ppid": "ppid",
     "Exit": "exit",
+    # As above: the names auditd itself uses, which is how Sigma auditd rules
+    # are written.
+    "exe": "exe",
+    "key": "key",
+    "name": "name",
+    "dir": "name",
+    "a0": "a0",
+    "a1": "a1",
+    "a2": "a2",
+    "a3": "a3",
+    "a4": "a4",
+    "a5": "a5",
+    "ExecveA5": "a5",
 }
 
 # Sigma logsource -> the table/index each backend reads.
@@ -170,6 +199,11 @@ WAZUH_GROUPS = {
     ("windows", "system"): "windows,windows_system,",
     ("linux", "auditd"): "linux,audit,",
     ("linux", None): "linux,",
+    # Product-level fallback. A rule that gives `product: windows` and a
+    # category but no service (Sigma writes most process_creation rules that
+    # way) is still a Windows rule, and dropping it to "unknown" would strip
+    # scoping from the majority of any real corpus.
+    ("windows", None): "windows,",
 }
 WAZUH_IF_GROUP = {
     ("windows", "sysmon"): "sysmon_event1",
@@ -178,6 +212,7 @@ WAZUH_IF_GROUP = {
     ("windows", "powershell"): "windows",
     ("linux", "auditd"): "audit",
     ("linux", None): "syslog",
+    ("windows", None): "windows",
 }
 SENTINEL_TABLES = {
     ("windows", "security"): "SecurityEvent",
@@ -334,8 +369,13 @@ def wildcard_to_regex(v: str) -> str:
     return "".join(out)
 
 
-def to_regex(value, mods: list[str]) -> str:
-    """Render one Sigma value as a regex fragment (Wazuh's matching model)."""
+def to_regex(value, mods: list[str], unfielded: bool = False) -> str:
+    """Render one Sigma value as a regex fragment (Wazuh's matching model).
+
+    `unfielded` is Sigma keyword search, where the value has to appear somewhere
+    in the event rather than be the whole of a named field. That is substring
+    matching, so the anchors a field test needs would be wrong: `^PermissionDenied$`
+    against a whole log line is a rule that deploys cleanly and never fires."""
     if value is None:
         return r"^$"
     v = str(value)
@@ -348,40 +388,147 @@ def to_regex(value, mods: list[str]) -> str:
         return "^" + core
     if "endswith" in mods:
         return core + "$"
-    if "*" in v or "?" in v:
-        return "^" + core + "$"
+    if unfielded:
+        return core
     return "^" + core + "$"
 
 
 # --------------------------------------------------------------------------
 # Rule loading + validation
 # --------------------------------------------------------------------------
-def load_rules() -> list[dict]:
-    rules = []
-    for path in sorted(RULES_DIR.rglob("*.yml")):
-        with open(path, "r", encoding="utf-8") as fh:
-            doc = yaml.safe_load(fh)
-        if not doc:
+def _display_path(path: pathlib.Path) -> str:
+    """Shortest path that still identifies the file to whoever reads the error.
+
+    Relative to the pack for bundled rules, relative to the working directory
+    for a corpus somebody pointed us at, absolute as a last resort."""
+    resolved = path.resolve()
+    for base in (ROOT, pathlib.Path.cwd()):
+        try:
+            return resolved.relative_to(base).as_posix()
+        except ValueError:
             continue
-        doc["_path"] = path.relative_to(ROOT).as_posix()
-        doc["_tactic"] = path.parent.name
-        rules.append(doc)
+    return resolved.as_posix()
+
+
+def tactic_of(doc: dict, path: pathlib.Path) -> str:
+    """Which ATT&CK tactic a rule belongs to.
+
+    This pack encodes it in the directory name. A foreign corpus does not,
+    because SigmaHQ organises by log source rather than by tactic, so fall back
+    to the `attack.<tactic>` tag and normalise the underscores Sigma uses into
+    the hyphenated spelling used everywhere else here."""
+    if path.parent.name in TACTIC_TITLES:
+        return path.parent.name
+    for tag in doc.get("tags") or []:
+        name = str(tag).lower()
+        if name.startswith("attack."):
+            name = name.split(".", 1)[1].replace("_", "-")
+            if name in TACTIC_TITLES:
+                return name
+    return "uncategorised"
+
+
+def load_rules(inputs=None) -> list[dict]:
+    """Load every Sigma document under the given paths, defaulting to this pack.
+
+    Any Sigma tree works, which is most of the reason the compiler is worth
+    having on its own: pointing it at a SigmaHQ checkout is the common case.
+
+    A file that cannot be parsed is carried through as an entry with
+    `_unreadable` set rather than dropped, because a corpus report that quietly
+    omits the files it choked on is exactly the kind of soft lie this tool
+    exists to avoid."""
+    roots = [pathlib.Path(i) for i in (inputs or [RULES_DIR])]
+    rules: list[dict] = []
+    seen: set = set()
+    for root in roots:
+        if root.is_file():
+            paths = [root]
+        else:
+            paths = sorted(set(root.rglob("*.yml")) | set(root.rglob("*.yaml")))
+        for path in paths:
+            key = path.resolve()
+            if key in seen:
+                continue
+            seen.add(key)
+            shown = _display_path(path)
+            try:
+                # safe_load_all, not safe_load: Sigma permits a multi-document
+                # file (a shared `action: global` head plus per-rule bodies),
+                # and safe_load raises on the second document rather than
+                # reading it.
+                with open(path, "r", encoding="utf-8") as fh:
+                    docs = list(yaml.safe_load_all(fh))
+            except OSError as e:
+                # Not a YAML problem, and saying so matters: on Windows this is
+                # almost always the 260-character path limit biting a deep
+                # SigmaHQ checkout, which has a fix the reader can act on.
+                hint = ""
+                if os.name == "nt" and len(str(path.resolve())) > 255:
+                    hint = (" (path is over 260 characters; enable long paths with "
+                            "`git config --system core.longpaths true` or check out "
+                            "nearer the drive root)")
+                rules.append({"_path": shown, "_tactic": "uncategorised",
+                              "_unreadable": f"could not read file: {e.strerror or e}{hint}"})
+                continue
+            except (yaml.YAMLError, UnicodeDecodeError) as e:
+                detail = str(e).splitlines()[0] if str(e).strip() else type(e).__name__
+                rules.append({"_path": shown, "_tactic": "uncategorised",
+                              "_unreadable": f"unparseable YAML: {detail}"})
+                continue
+            for doc in docs:
+                # Skip collection heads, index files and anything else that is
+                # not a rule. A Sigma rule is the thing with a `detection`.
+                if not isinstance(doc, dict) or "detection" not in doc:
+                    continue
+                doc["_path"] = shown
+                doc["_tactic"] = tactic_of(doc, path)
+                rules.append(doc)
     return rules
 
 
 REQUIRED = ("title", "id", "description", "logsource", "detection", "level", "tags", "validation")
 
 
-def validate(rule: dict) -> list[str]:
-    errs = [f"missing `{k}`" for k in REQUIRED if k not in rule]
+# What a rule needs before it can be translated at all, as opposed to what it
+# needs in order to ship *in* this pack. That difference is the whole of --lax.
+MINIMUM = ("title", "logsource", "detection")
+
+
+def relax(rule: dict) -> list[str]:
+    """Fill in what a foreign corpus is allowed to omit, and report what was filled.
+
+    An evidence block on every rule, and a level drawn from a fixed set, are
+    house standards here. Neither is a translation-fidelity question, so a rule
+    from somebody else gets a default and a note rather than a refusal."""
+    notes = []
     if rule.get("level") not in LEVEL_TO_WAZUH:
+        had = f"level {rule['level']!r}" if "level" in rule else "no level"
+        notes.append(f"{had}; treated as medium")
+        rule["level"] = "medium"
+    if not any(str(t).startswith("attack.t") for t in rule.get("tags") or []):
+        rule.setdefault("tags", [])
+        notes.append("no attack.tNNNN tag; emitted without a technique mapping")
+    rule.setdefault("description", rule.get("title", ""))
+    rule.setdefault("id", "")
+    return notes
+
+
+def validate(rule: dict, strict: bool = True) -> list[str]:
+    """Problems that would stop this rule compiling faithfully.
+
+    `strict` additionally enforces the house standards every rule in this pack
+    has to meet. Lax mode keeps only the checks that decide whether the output
+    would be *correct*, which is what you want when the corpus is not yours."""
+    errs = [f"missing `{k}`" for k in (REQUIRED if strict else MINIMUM) if k not in rule]
+    if strict and rule.get("level") not in LEVEL_TO_WAZUH:
         errs.append(f"level must be one of {sorted(LEVEL_TO_WAZUH)}")
 
     # A rule nobody can trigger is a rule nobody can trust. `fire` has to be a
     # command a reader can actually run; `atomic` points at the Atomic Red Team
     # technique folder for a maintained version of the same test.
     val = rule.get("validation")
-    if val is not None:
+    if strict and val is not None:
         if not isinstance(val, dict):
             errs.append("`validation` must be a mapping with `atomic` and `fire`")
         else:
@@ -391,19 +538,34 @@ def validate(rule: dict) -> list[str]:
             if not re.fullmatch(r"T\d{4}(\.\d{3})?", atomic):
                 errs.append(f"`validation.atomic` should be an ATT&CK technique id, got {atomic!r}")
     det = rule.get("detection", {})
+    if not isinstance(det, dict):
+        return errs + ["`detection` must be a mapping"]
     if "condition" not in det:
         errs.append("detection.condition is required")
-    if not any(str(t).startswith("attack.t") for t in rule.get("tags", [])):
+    if strict and not any(str(t).startswith("attack.t") for t in rule.get("tags", [])):
         errs.append("needs an attack.tNNNN technique tag")
-    names = [k for k in det if k != "condition"]
+    names = selection_names(det)
     if "condition" in det:
-        try:
-            parse_condition(str(det["condition"]), names)
-        except Unsupported as e:
-            errs.append(f"condition: {e}")
+        cond = det["condition"]
+        # Sigma allows a list of conditions, meaning "any of these". This
+        # compiler renders one condition per rule, so say that plainly instead
+        # of stringifying the list into something that parses but means
+        # nothing like the original.
+        if isinstance(cond, list):
+            errs.append("condition is a list (implicit OR of conditions); "
+                        "split it into one rule per condition")
+        else:
+            try:
+                parse_condition(str(cond), names)
+            except Unsupported as e:
+                errs.append(f"condition: {e}")
 
     # Resolve every field against every backend that has to render it, so a
-    # missing mapping fails in CI rather than halfway through a compile.
+    # missing mapping fails in CI rather than halfway through a compile. In lax
+    # mode the renderer itself is the oracle instead, once per requested
+    # backend, so a rule is never refused over a backend nobody asked for.
+    if not strict:
+        return errs
     platform = platform_of(rule)
     for sel in names:
         block = det[sel]
@@ -453,16 +615,61 @@ STRICT_FIELDS = {
 }
 
 
+# Fields that only exist in a process-creation feed. On Windows they are ordinary
+# Sysmon fields. On Linux they mean the rule was written against Sysmon for Linux
+# or auditbeat rather than auditd, and silently mapping them to an auditd field
+# would produce a rule that deploys cleanly and can never match.
+PROCESS_FEED_FIELDS = {
+    "CommandLine", "ParentCommandLine", "ParentImage", "ParentProcessId",
+    "ParentProcessGuid", "ProcessGuid", "CurrentDirectory", "IntegrityLevel",
+    "LogonId", "LogonGuid", "OriginalFileName", "Company", "Product",
+    "Description", "Hashes", "DestinationHostname", "DestinationIp",
+    "DestinationPort", "SourceIp", "SourcePort", "Initiated", "Protocol",
+}
+
+_FOLDED_FIELD_CACHE: dict = {}
+
+
+def _folded_fields(backend: str, platform: str, table: dict) -> dict:
+    """Case-insensitive view of a strict field table, built once per table."""
+    key = (backend, platform)
+    if key not in _FOLDED_FIELD_CACHE:
+        folded: dict = {}
+        for name, mapped in table.items():
+            folded.setdefault(name.lower(), mapped)
+        _FOLDED_FIELD_CACHE[key] = folded
+    return _FOLDED_FIELD_CACHE[key]
+
+
 def resolve_field(backend: str, platform: str, field: str) -> str:
+    # The empty field is Sigma unfielded keyword search, which by definition has
+    # no field to resolve. Each renderer decides how to say "anywhere in the
+    # event", or declines.
+    if not field:
+        return ""
     strict = STRICT_FIELDS.get((backend, platform))
     if strict is not None:
-        if field not in strict:
+        if field in strict:
+            return strict[field]
+        # Same field, different capitalisation, is not worth refusing a rule
+        # over. Sigma auditd rules say `type`; the table says `Type`.
+        folded = _folded_fields(backend, platform, strict)
+        if field.lower() in folded:
+            return folded[field.lower()]
+        if field in PROCESS_FEED_FIELDS:
             raise Unsupported(
-                f"field {field!r} has no {backend} mapping for {platform}; "
-                f"add it to {backend.upper()}_{platform.upper()}_FIELDS or use one of "
-                f"{sorted(strict)}"
+                f"field {field!r} is not an auditd field. Linux rules compile against the "
+                f"Wazuh auditd decoder, where a process argv arrives split across EXECVE "
+                f"a0..aN and no single command line exists. A rule using {field!r} with "
+                f"logsource.product linux is written for a process-creation agent "
+                f"(Sysmon for Linux, auditbeat), which this compiler does not map, so "
+                f"translating it would produce a rule that deploys and never matches"
             )
-        return strict[field]
+        raise Unsupported(
+            f"field {field!r} has no {backend} mapping for {platform}; "
+            f"add it to {backend.upper()}_{platform.upper()}_FIELDS or use one of "
+            f"{sorted(strict)}"
+        )
     if backend == "wazuh":
         return WAZUH_FIELDS.get(field, f"win.eventdata.{field[0].lower() + field[1:]}")
     if backend == "sentinel":
@@ -536,11 +743,43 @@ def _validation_lines(rule: dict) -> list[str]:
     return out
 
 
+# Keys that live under `detection:` without being selections. `1 of them` and
+# `all of them` expand over selection names, and a keyword scan walks selection
+# blocks, so counting `timeframe` among them silently turns a threshold into a
+# search term.
+DETECTION_META = {"condition", "timeframe", "count", "groupby"}
+
+
+def selection_names(det: dict) -> list:
+    """The selection names in a detection block, in source order."""
+    return [k for k in det if k not in DETECTION_META]
+
+
+def selection_blocks(det: dict) -> list:
+    """The selection bodies in a detection block."""
+    return [b for k, b in det.items() if k not in DETECTION_META]
+
+
 def iter_field_matches(block):
-    """Yield (field, modifiers, [values]) for one selection block."""
+    """Yield (field, modifiers, [values]) for one selection block.
+
+    A field of "" is Sigma unfielded keyword search: the value has to appear
+    somewhere in the event rather than in a named field. It is written either as
+    a bare list of strings under a selection name, or as a `|all` key with no
+    field in front of the pipe. Backends that can express that faithfully render
+    it; the ones that cannot decline the rule."""
+    if not isinstance(block, (dict, list)):
+        yield "", [], [block]
+        return
     if isinstance(block, list):
+        # A list of scalars is a keyword list, meaning any of these. A list of
+        # maps is a list of selections, which is an OR the caller handles.
+        scalars = [b for b in block if not isinstance(b, (dict, list))]
+        if scalars:
+            yield "", [], scalars
         for sub in block:
-            yield from iter_field_matches(sub)
+            if isinstance(sub, (dict, list)):
+                yield from iter_field_matches(sub)
         return
     for key, val in block.items():
         field, mods = split_field(key)
@@ -598,7 +837,7 @@ def render_wazuh(rules: list[dict]) -> str:
     rid = 100100
     for rule in rules:
         det = rule["detection"]
-        names = [k for k in det if k != "condition"]
+        names = selection_names(det)
         tree = parse_condition(str(det["condition"]), names)
 
         # Wazuh evaluates one flat conjunction per rule, so an `or` becomes a set
@@ -612,14 +851,26 @@ def render_wazuh(rules: list[dict]) -> str:
             )
 
         key = logsource_key(rule)
-        group = WAZUH_GROUPS.get(key, "windows,")
-        if_group = WAZUH_IF_GROUP.get(key, "windows")
+        # An unmapped logsource used to fall back to the Windows group, which
+        # quietly scoped a Django or macOS rule to Windows events and guaranteed
+        # it would never fire. Emitting no <if_group> is the honest translation:
+        # unscoped, evaluated against everything, and flagged for tuning.
+        product_key = (key[0], None)
+        known_logsource = key in WAZUH_GROUPS or product_key in WAZUH_GROUPS
+        group = WAZUH_GROUPS.get(key) or WAZUH_GROUPS.get(product_key, "sigma,")
+        if_group = WAZUH_IF_GROUP.get(key) or WAZUH_IF_GROUP.get(product_key)
         level = LEVEL_TO_WAZUH[rule["level"]]
         techniques = [t.split(".", 1)[1].upper() for t in rule["tags"] if str(t).startswith("attack.t")]
 
         agg = rule_aggregation(rule)
         out.append("<!-- " + _comment_safe(f'{rule["title"]}  [{rule["_path"]}]'))
         out.append(f'     status: {rule.get("status", "experimental")}')
+        if not known_logsource:
+            ls = rule.get("logsource", {}) or {}
+            out.append(_comment_safe(
+                f'     TUNE: logsource product={ls.get("product")!r} service={ls.get("service")!r} '
+                f'category={ls.get("category")!r} has no Wazuh group mapping, so this rule carries no '
+                f'<if_group> and is evaluated against every decoded event. Scope it before you deploy it.'))
         if len(variants) > 1:
             out.append(f"     NOTE: the source condition is a disjunction, so it compiles to "
                        f"{len(variants)} sibling rules below (any one of them firing means a hit).")
@@ -631,11 +882,12 @@ def render_wazuh(rules: list[dict]) -> str:
             label = rule["title"] if len(variants) == 1 else f"{rule['title']} ({idx}/{len(variants)}: {', '.join(positives)})"
             out.append(f'<group name="{group}">')
             out.append(f'  <rule id="{rid}" level="{level}">')
-            out.append(f"    <if_group>{if_group}</if_group>")
+            if if_group:
+                out.append(f"    <if_group>{if_group}</if_group>")
             for sel in dict.fromkeys(positives):  # dedupe, preserve order
                 for field, mods, values in iter_field_matches(det[sel]):
                     wf = resolve_field("wazuh", platform, field)
-                    parts = [to_regex(v, mods) for v in values]
+                    parts = [to_regex(v, mods, unfielded=not wf) for v in values]
                     if "all" in mods and len(parts) > 1:
                         # `|all` means every value must be present. Alternation
                         # would mean "any", so require PCRE2 and AND them with
@@ -645,7 +897,12 @@ def render_wazuh(rules: list[dict]) -> str:
                     else:
                         pattern = "|".join(parts)
                         attr = ' type="pcre2"' if len(parts) > 1 else ""
-                    out.append(f'    <field name="{wf}"{attr}>{sx.escape(pattern)}</field>')
+                    if wf:
+                        out.append(f'    <field name="{wf}"{attr}>{sx.escape(pattern)}</field>')
+                    else:
+                        # Unfielded keyword. Wazuh <regex> tests the whole
+                        # decoded log, which is exactly what Sigma means here.
+                        out.append(f'    <regex{attr}>{sx.escape(pattern)}</regex>')
             if agg:
                 out.append(f"    <frequency>{agg['threshold']}</frequency>")
                 out.append(f"    <timeframe>{_seconds(agg['timeframe'])}</timeframe>")
@@ -658,10 +915,11 @@ def render_wazuh(rules: list[dict]) -> str:
             out.append(f"    <description>{sx.escape(label)}</description>")
             if info:
                 out.append(f'    <info type="text">{sx.escape(info)}</info>')
-            out.append("    <mitre>")
-            for t in techniques:
-                out.append(f"      <id>{t}</id>")
-            out.append("    </mitre>")
+            if techniques:
+                out.append("    <mitre>")
+                for t in techniques:
+                    out.append(f"      <id>{t}</id>")
+                out.append("    </mitre>")
             if negatives:
                 excl = ", ".join(dict.fromkeys(negatives))
                 out.append("    <!-- " + _comment_safe(
@@ -699,18 +957,24 @@ def _seconds(tf: str) -> int:
 # Backend: Splunk SPL
 # --------------------------------------------------------------------------
 def _splunk_value(field: str, value, mods: list[str]) -> str:
+    # An empty field is Sigma unfielded keyword search. In SPL that is a bare
+    # term, which is matched against the raw event rather than a named field.
     if value is None:
-        return f'NOT {field}=*'
+        return f'NOT {field}=*' if field else "NOT _raw=*"
     v = str(value)
     if "re" in mods:
-        return f'match({field}, "{v}")'
+        return f'match({field or "_raw"}, "{v}")'
     if "contains" in mods:
         v = f"*{v}*"
     elif "startswith" in mods:
         v = f"{v}*"
     elif "endswith" in mods:
         v = f"*{v}"
-    return f'{field}="{v}"'
+    elif not field:
+        # Sigma keyword semantics are "appears in the event", so substring,
+        # not the token equality a bare unquoted SPL term would give.
+        v = f"*{v}*"
+    return f'{field}="{v}"' if field else f'"{v}"'
 
 
 def render_splunk(rules: list[dict]) -> str:
@@ -724,7 +988,7 @@ def render_splunk(rules: list[dict]) -> str:
     ]
     for rule in rules:
         det = rule["detection"]
-        names = [k for k in det if k != "condition"]
+        names = selection_names(det)
         tree = parse_condition(str(det["condition"]), names)
 
         platform = platform_of(rule)
@@ -807,8 +1071,16 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
         if platform_of(rule) == "linux":
             skipped.append((rule["_path"], "auditd has no faithful Sentinel field mapping"))
             continue
+        # Sigma unfielded keywords mean "anywhere in the event". KQL can only say
+        # that with a table-wide `search`, which is not something to put in an
+        # analytics rule, so this is a decline rather than a slower equivalent.
+        det_blocks = selection_blocks(rule["detection"])
+        if any(not f for b in det_blocks for f, _m, _v in iter_field_matches(b)):
+            skipped.append((rule["_path"],
+                            "unfielded keyword search has no faithful KQL field mapping"))
+            continue
         det = rule["detection"]
-        names = [k for k in det if k != "condition"]
+        names = selection_names(det)
         tree = parse_condition(str(det["condition"]), names)
 
         def render(node) -> str:
@@ -1024,33 +1296,218 @@ def render_coverage(rules: list[dict]) -> str:
 
 
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# Screening a corpus that is not ours
+#
+# Compiling this pack is all-or-nothing on purpose: a rule that cannot be
+# translated faithfully is a CI failure, not a warning. Pointed at somebody
+# elses corpus that is the wrong behaviour. Three thousand SigmaHQ rules will
+# always contain constructs this compiler does not implement, and refusing to
+# emit any of the other two thousand helps nobody. So: screen per rule, keep
+# what translates, and say precisely why the rest did not.
+# --------------------------------------------------------------------------
+def _probe(rule: dict, backend: str) -> None:
+    """Compile one rule for one backend, purely to find out whether it can be.
+
+    The renderer is the oracle. Screening by re-implementing what the renderer
+    accepts would eventually drift out of agreement with the renderer, which is
+    the exact class of silently-wrong output this compiler exists to prevent."""
+    if backend == "wazuh":
+        render_wazuh([rule])
+    elif backend == "splunk":
+        render_splunk([rule])
+    elif backend == "sentinel":
+        _, declined = render_sentinel([rule])
+        if declined:
+            raise Unsupported(declined[0][1])
+    # navigator, coverage, stats and validate render no fields, so parsing plus
+    # the shared checks in validate() are the whole bar for those.
+
+
+def screen(rules: list[dict], backend: str, strict: bool = False):
+    """Split a corpus into what this backend can render faithfully, and the rest.
+
+    Returns (translatable, [(path, reason)])."""
+    ok, declined = [], []
+    for rule in rules:
+        if rule.get("_unreadable"):
+            declined.append((rule["_path"], rule["_unreadable"]))
+            continue
+        if not strict:
+            relax(rule)
+        errs = validate(rule, strict=strict)
+        if errs:
+            declined.append((rule["_path"], errs[0]))
+            continue
+        try:
+            _probe(rule, backend)
+        except Unsupported as e:
+            declined.append((rule["_path"], str(e)))
+        except Exception as e:  # noqa: BLE001
+            # A foreign corpus is adversarial input for a compiler this small.
+            # An unexpected exception becomes a skip with its reason attached,
+            # not a crash two thousand rules into somebody elses build.
+            declined.append((rule["_path"], f"{type(e).__name__}: {e}"))
+        else:
+            ok.append(rule)
+    return ok, declined
+
+
+def _reason_bucket(reason: str) -> str:
+    """Collapse a specific refusal into its class, so a report can rank causes
+    instead of printing three thousand near-identical lines."""
+    # Refusals raised from inside a renderer carry the rule path as a prefix.
+    # Left in, every one of them buckets to itself and the ranking is useless.
+    text = re.sub(r"^\S+\.ya?ml:\s*", "", str(reason))
+    text = re.sub(r"'[^']*'", "'X'", text)
+    text = re.sub(r'"[^"]*"', '"X"', text)
+    text = re.sub(r"\b\d+\b", "N", text)
+    text = text.split(";")[0].split(" (")[0].split(". ")[0].strip()
+    return text[:110]
+
+
+REPORT_BACKENDS = ("wazuh", "splunk", "sentinel")
+
+
+def render_report(rules: list[dict], where: str, strict: bool = False) -> str:
+    """How much of a given corpus this compiler can translate, and what stops
+    the rest. Generated so the number is never a claim somebody has to trust."""
+    unreadable = [r for r in rules if r.get("_unreadable")]
+    readable = len(rules) - len(unreadable)
+
+    out = [
+        "# Sigma translation report",
+        "",
+        f"Corpus: `{where}`",
+        "",
+        f"- **{len(rules)} Sigma documents** found"
+        + (f", {len(unreadable)} of which could not be parsed as YAML" if unreadable else ""),
+        f"- **{readable} rules** offered to the compiler",
+        "",
+        "| Backend | Translated | Declined | Rate | Output rules |",
+        "|---|---:|---:|---:|---:|",
+    ]
+
+    per_backend = {}
+    for backend in REPORT_BACKENDS:
+        ok, declined = screen([dict(r) for r in rules], backend, strict=strict)
+        per_backend[backend] = declined
+        emitted = len(ok)
+        if backend == "wazuh" and ok:
+            # A disjunction becomes one sibling Wazuh rule per branch, so the
+            # count of rules on the manager is genuinely higher than the count
+            # of sources. Worth stating rather than quietly conflating them.
+            emitted = render_wazuh(ok).count("<rule id=")
+        rate = f"{100 * len(ok) / readable:.0f}%" if readable else "n/a"
+        out.append(f"| {backend} | {len(ok)} | {len(declined)} | {rate} | {emitted} |")
+
+    techs = sorted({t for r in rules if not r.get("_unreadable") for t in techniques_of(r)})
+    out += ["", f"ATT&CK techniques present in the corpus: **{len(techs)}**", ""]
+
+    out.append("## Why rules were declined")
+    out.append("")
+    out.append("Every line here is the compiler refusing to emit something it could not")
+    out.append("translate faithfully. A converter that silently degraded these instead")
+    out.append("would report a higher number and ship rules that quietly mean something")
+    out.append("other than their source.")
+    for backend in REPORT_BACKENDS:
+        declined = per_backend[backend]
+        if not declined:
+            continue
+        buckets: dict = {}
+        for _path, reason in declined:
+            buckets.setdefault(_reason_bucket(reason), []).append(_path)
+        out += ["", f"### {backend} ({len(declined)} declined)", "",
+                "| Reason | Rules |", "|---|---:|"]
+        for reason, paths in sorted(buckets.items(), key=lambda kv: -len(kv[1]))[:15]:
+            out.append(f"| {reason.replace('|', chr(92) + '|')} | {len(paths)} |")
+    out.append("")
+    return "\n".join(out)
+
+
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Compile Tyrian Sigma rules to SIEM dialects.")
+    ap = argparse.ArgumentParser(
+        description="Compile Sigma rules to Wazuh, Splunk and Sentinel.",
+        epilog=(
+            "examples:\n"
+            "  %(prog)s --backend wazuh --out dist/wazuh\n"
+            "  %(prog)s --input ~/sigma/rules --backend wazuh --out /tmp/wazuh\n"
+            "  %(prog)s --input ~/sigma/rules --backend report > REPORT.md\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     ap.add_argument(
         "--backend",
-        choices=["wazuh", "splunk", "sentinel", "navigator", "coverage", "validate", "stats"],
+        choices=["wazuh", "splunk", "sentinel", "navigator", "coverage",
+                 "validate", "stats", "report"],
         required=True,
+        help="output dialect, or one of the reporting modes (validate, stats, report)",
     )
     ap.add_argument("--out", help="output directory (sentinel writes one file per rule)")
+    ap.add_argument(
+        "--input", nargs="+", metavar="PATH", default=None,
+        help="Sigma files or directories to compile. Defaults to the rules in this "
+             "pack. Point it at any Sigma corpus, for instance a SigmaHQ checkout.",
+    )
+    ap.add_argument(
+        "--summary", metavar="PATH",
+        help="write a JSON summary of the run (counts and refusal reasons) to PATH. "
+             "Intended for CI, dashboards and tracking translation drift over time.",
+    )
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--strict", dest="strict", action="store_true", default=None,
+        help="every rule must meet the house standards of this pack and translate to "
+             "every backend, or the whole build fails. Default for the bundled rules.",
+    )
+    mode.add_argument(
+        "--lax", dest="strict", action="store_false",
+        help="keep the rules that translate, report the ones that do not, and exit 0. "
+             "Default when --input is given, because a corpus you did not write will "
+             "always contain constructs this compiler does not implement.",
+    )
     args = ap.parse_args()
 
-    rules = load_rules()
+    # Somebody elses rules are screened per rule; ours are all-or-nothing.
+    strict = args.strict if args.strict is not None else (args.input is None)
+    where = ", ".join(args.input) if args.input else RULES_DIR.as_posix()
+
+    rules = load_rules(args.input)
     if not rules:
-        print("no rules found under rules/", file=sys.stderr)
+        print(f"no Sigma rules found under {where}", file=sys.stderr)
         return 1
 
-    problems = {r["_path"]: validate(r) for r in rules}
-    problems = {k: v for k, v in problems.items() if v}
-    if problems:
-        for path, errs in problems.items():
-            for e in errs:
-                print(f"{path}: {e}", file=sys.stderr)
-        if args.backend != "validate":
-            return 1
+    if args.backend == "report":
+        print(render_report(rules, where, strict=strict))
+        return 0
 
-    if args.backend == "validate":
-        print(f"validated {len(rules)} rules, {len(problems)} with problems")
-        return 1 if problems else 0
+    if strict:
+        problems = {r["_path"]: validate(r) for r in rules}
+        problems = {k: v for k, v in problems.items() if v}
+        if problems:
+            for path, errs in problems.items():
+                for e in errs:
+                    print(f"{path}: {e}", file=sys.stderr)
+            if args.backend != "validate":
+                return 1
+        _write_summary(args.summary, args.backend, offered=len(rules),
+                       declined=[(k, v[0]) for k, v in problems.items()])
+        if args.backend == "validate":
+            print(f"validated {len(rules)} rules, {len(problems)} with problems")
+            return 1 if problems else 0
+    else:
+        offered = len(rules)
+        rules, declined = screen(rules, args.backend, strict=False)
+        for path, reason in declined:
+            print(f"declined: {path}: {reason}", file=sys.stderr)
+        print(f"{args.backend}: translated {len(rules)}/{offered} rules, "
+              f"declined {len(declined)}", file=sys.stderr)
+        _write_summary(args.summary, args.backend, offered=offered, declined=declined)
+        if args.backend == "validate":
+            return 0
+        if not rules:
+            print("nothing left to emit", file=sys.stderr)
+            return 1
 
     if args.backend == "stats":
         techs = sorted({t.split(".", 1)[1].upper() for r in rules for t in r["tags"] if str(t).startswith("attack.t")})
@@ -1120,6 +1577,32 @@ def main() -> int:
                 )
                 return 2
     return 0
+
+
+def _write_summary(path: "str | None", backend: str, offered: int, declined: list) -> None:
+    """A machine-readable record of what translated and what did not.
+
+    The point of publishing the refusals alongside the counts is that a rising
+    `declined` number is information, not failure. It usually means the upstream
+    corpus started using a construct this compiler does not implement yet."""
+    if not path:
+        return
+    reasons: dict = {}
+    for _rule_path, reason in declined:
+        reasons[_reason_bucket(reason)] = reasons.get(_reason_bucket(reason), 0) + 1
+    payload = {
+        "backend": backend,
+        "offered": offered,
+        "translated": offered - len(declined),
+        "declined": len(declined),
+        "rate": round((offered - len(declined)) / offered, 4) if offered else None,
+        "reasons": dict(sorted(reasons.items(), key=lambda kv: -kv[1])),
+    }
+    out = pathlib.Path(path)
+    if out.parent != pathlib.Path(""):
+        out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote summary to {out}", file=sys.stderr)
 
 
 def _emit(text: str, out: str | None, filename: str) -> None:

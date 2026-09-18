@@ -1,0 +1,103 @@
+name: Compile Sigma to Wazuh
+description: >-
+  Compile Sigma rules to Wazuh, Splunk or Sentinel. Refuses any rule it cannot
+  translate faithfully instead of emitting one that quietly means something else.
+author: Tyrian
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  rules:
+    description: Directory or file of Sigma rules to compile.
+    required: false
+    default: rules
+  backend:
+    description: >-
+      Output dialect (wazuh, splunk, sentinel, navigator) or a reporting mode
+      (validate, report).
+    required: false
+    default: wazuh
+  out:
+    description: Output directory. Leave empty to print to the job log instead.
+    required: false
+    default: ""
+  strict:
+    description: >-
+      "true" fails the build on any rule that cannot be translated, which is
+      what you want for a corpus you maintain. "false" keeps what translates and
+      reports the rest, which is what you want when pointing this at somebody
+      else's rules.
+    required: false
+    default: "false"
+  python-version:
+    description: Python version used to run the compiler.
+    required: false
+    default: "3.11"
+
+outputs:
+  translated:
+    description: Number of rules successfully compiled.
+    value: ${{ steps.compile.outputs.translated }}
+  declined:
+    description: Number of rules the compiler refused to translate.
+    value: ${{ steps.compile.outputs.declined }}
+  rate:
+    description: Translated rules as a fraction of those offered, to 4 decimals.
+    value: ${{ steps.compile.outputs.rate }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install compiler dependencies
+      shell: bash
+      run: pip install --quiet pyyaml
+
+    - name: Compile
+      id: compile
+      shell: bash
+      env:
+        # Through the environment rather than interpolated into the script, so a
+        # path containing a quote is an odd path and not a shell injection.
+        SIGMA_RULES: ${{ inputs.rules }}
+        SIGMA_BACKEND: ${{ inputs.backend }}
+        SIGMA_OUT: ${{ inputs.out }}
+        SIGMA_STRICT: ${{ inputs.strict }}
+      run: |
+        set -euo pipefail
+        summary="${RUNNER_TEMP}/sigma-summary.json"
+        args=(--input "${SIGMA_RULES}" --backend "${SIGMA_BACKEND}" --summary "${summary}")
+        if [ -n "${SIGMA_OUT}" ]; then
+          args+=(--out "${SIGMA_OUT}")
+        fi
+        if [ "${SIGMA_STRICT}" = "true" ]; then
+          args+=(--strict)
+        fi
+        python "${GITHUB_ACTION_PATH}/tools/sigma_compile.py" "${args[@]}"
+
+        # `report` prints to stdout and writes no summary, so absence is normal.
+        if [ -f "${summary}" ]; then
+          python - "${summary}" <<'PY' >> "${GITHUB_OUTPUT}"
+        import json, sys
+        data = json.load(open(sys.argv[1]))
+        for key in ("translated", "declined", "rate"):
+            print(f"{key}={data.get(key)}")
+        PY
+          python - "${summary}" <<'PY' >> "${GITHUB_STEP_SUMMARY}"
+        import json, sys
+        d = json.load(open(sys.argv[1]))
+        print(f"### Sigma to {d['backend']}\n")
+        print(f"- **{d['translated']}** of **{d['offered']}** rules translated"
+              + (f" ({d['rate']:.0%})" if d.get("rate") is not None else ""))
+        print(f"- **{d['declined']}** declined\n")
+        if d.get("reasons"):
+            print("| Reason | Rules |\n|---|---:|")
+            for reason, count in d["reasons"].items():
+                print(f"| {reason} | {count} |")
+        PY
+        fi

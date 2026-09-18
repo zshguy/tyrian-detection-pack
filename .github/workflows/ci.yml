@@ -21,6 +21,12 @@ jobs:
 
       - run: pip install pyyaml
 
+      # The compiler is the part that can be wrong silently: a mistranslation
+      # deploys cleanly and simply never fires. Every case in here is one that
+      # was wrong at some point.
+      - name: Compiler tests
+        run: python -m unittest discover -s tools -p "test_*.py" -v
+
       # Every rule must parse, carry an ATT&CK technique tag, and use only
       # constructs the compiler can translate faithfully.
       - name: Validate rule corpus
@@ -83,3 +89,58 @@ jobs:
             cat /tmp/stats.json
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The README claims a translation rate against the full SigmaHQ corpus. Claims
+  # like that rot quietly: upstream adds rules using constructs this compiler
+  # does not implement, and the number in the README stays where it was. So the
+  # claim is re-measured on every run against SigmaHQ main, and published to the
+  # job summary where anyone can check it.
+  sigmahq:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install pyyaml
+
+      - name: Check out SigmaHQ
+        uses: actions/checkout@v4
+        with:
+          repository: SigmaHQ/sigma
+          path: .sigmahq
+          fetch-depth: 1
+
+      - name: Measure translation coverage
+        run: |
+          python tools/sigma_compile.py --input .sigmahq/rules --backend report \
+            | tee sigmahq-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Compile every backend against SigmaHQ
+        run: |
+          for backend in wazuh splunk sentinel; do
+            python tools/sigma_compile.py --input .sigmahq/rules \
+              --backend "$backend" --out ".sigmahq-dist/$backend" \
+              --summary ".sigmahq-dist/$backend.json"
+          done
+
+      # A rule that compiles is not the same as a rule Wazuh will load. Wazuh
+      # parses local_rules.xml with libxml2 and rejects the entire ruleset on one
+      # error, so the generated file is parsed here before anybody deploys it.
+      - name: Generated Wazuh XML must be well-formed
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          xml = open(".sigmahq-dist/wazuh/local_rules.xml", encoding="utf-8").read()
+          ET.fromstring(f"<root>{xml}</root>")
+          print(f"parsed {xml.count('<rule id=')} Wazuh rules compiled from SigmaHQ")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sigmahq-translation
+          path: |
+            sigmahq-report.md
+            .sigmahq-dist/
