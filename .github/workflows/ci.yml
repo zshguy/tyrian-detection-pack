@@ -115,8 +115,11 @@ jobs:
 
       - name: Measure translation coverage
         run: |
+          # tee to the log as well as to the file: somebody reading a failed
+          # run should not have to download an artifact to see the numbers.
           python tools/sigma_compile.py --input .sigmahq/rules --backend report \
-            | tee sigmahq-report.md >> "$GITHUB_STEP_SUMMARY"
+            | tee sigmahq-report.md
+          cat sigmahq-report.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Compile every backend against SigmaHQ
         run: |
