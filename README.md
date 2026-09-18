@@ -79,7 +79,7 @@ produce a rule that deploys and never matches
 If you maintain Sigma rules and run Wazuh, the compiler is a GitHub Action:
 
 ```yaml
-- uses: zshguy/tyrian-detection-pack@main
+- uses: zshguy/tyrian-detection-pack@v1
   with:
     rules: detections/
     backend: wazuh
