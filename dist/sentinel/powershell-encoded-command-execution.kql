@@ -5,4 +5,4 @@
 //   powershell.exe -nop -w hidden -enc <base64-of-utf16le-command>
 // source: rules/execution/powershell-encoded-command.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\\powershell.exe" or NewProcessName endswith "\\pwsh.exe")) and ((CommandLine has_any (dynamic([" -enc", " -EncodedCommand", " -e ", " -ec "])))))
+| where (((NewProcessName endswith @"\powershell.exe" or NewProcessName endswith @"\pwsh.exe")) and ((CommandLine contains @" -enc" or CommandLine contains @" -EncodedCommand" or CommandLine contains @" -e " or CommandLine contains @" -ec ")))

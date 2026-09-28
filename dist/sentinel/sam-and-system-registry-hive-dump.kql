@@ -6,4 +6,4 @@
 //   reg save HKLM\SYSTEM C:\Windows\Temp\sys.hiv
 // source: rules/credential-access/sam-hive-dump.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\\reg.exe") and (CommandLine contains "save")) and ((CommandLine has_any (dynamic(["hklm\\sam", "hklm\\system", "hklm\\security"])))))
+| where (((NewProcessName endswith @"\reg.exe") and (CommandLine contains @"save")) and ((CommandLine contains @"hklm\sam" or CommandLine contains @"hklm\system" or CommandLine contains @"hklm\security")))

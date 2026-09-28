@@ -5,4 +5,4 @@
 //   Set-MpPreference -DisableRealtimeMonitoring $true
 // source: rules/defense-evasion/defender-disabled.yml  (GENERATED, do not edit by hand)
 Event
-| where ((CommandLine has_any (dynamic(["Set-MpPreference -DisableRealtimeMonitoring $true", "DisableRealtimeMonitoring 1", "Add-MpPreference -ExclusionPath", "DisableAntiSpyware"]))))
+| where ((CommandLine contains @"Set-MpPreference -DisableRealtimeMonitoring $true" or CommandLine contains @"DisableRealtimeMonitoring 1" or CommandLine contains @"Add-MpPreference -ExclusionPath" or CommandLine contains @"DisableAntiSpyware"))

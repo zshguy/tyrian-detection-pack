@@ -6,6 +6,6 @@
 //   net stop VeeamBackupSvc /y
 // source: rules/impact/service-stop-before-encryption.yml  (GENERATED, do not edit by hand)
 Event
-| where (((CommandLine has_any (dynamic(["net stop ", "sc stop ", "Stop-Service"])))) and ((CommandLine has_any (dynamic(["sql", "veeam", "backup", "exchange", "vss", "msexchange"])))))
+| where (((CommandLine contains @"net stop " or CommandLine contains @"sc stop " or CommandLine contains @"Stop-Service")) and ((CommandLine contains @"sql" or CommandLine contains @"veeam" or CommandLine contains @"backup" or CommandLine contains @"exchange" or CommandLine contains @"vss" or CommandLine contains @"msexchange")))
 | summarize Hits=count() by bin(TimeGenerated, 5m), host
 | where Hits >= 3

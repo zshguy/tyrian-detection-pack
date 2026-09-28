@@ -7,6 +7,6 @@
 //   nltest /dclist:<domain>
 // source: rules/discovery/domain-recon-net-commands.yml  (GENERATED, do not edit by hand)
 Event
-| where ((CommandLine has_any (dynamic(["net group "domain admins"", "net localgroup administrators", "nltest /domain_trusts", "nltest /dclist", "whoami /groups", "net user /domain"]))))
+| where ((CommandLine contains @"net group ""domain admins""" or CommandLine contains @"net localgroup administrators" or CommandLine contains @"nltest /domain_trusts" or CommandLine contains @"nltest /dclist" or CommandLine contains @"whoami /groups" or CommandLine contains @"net user /domain"))
 | summarize Hits=count() by bin(TimeGenerated, 10m), host
 | where Hits >= 3

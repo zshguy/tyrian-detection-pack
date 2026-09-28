@@ -5,4 +5,4 @@
 //   sc.exe create TyrianTest binPath= C:\Windows\Temp\p.exe start= auto
 // source: rules/persistence/service-creation-suspicious-path.yml  (GENERATED, do not edit by hand)
 Event
-| where (((EventID =~ "7045")) and ((ServiceFileName has_any (dynamic(["\\Temp\\", "\\Users\\Public\\", "\\AppData\\", "\\ProgramData\\", "powershell", "cmd.exe /c", "rundll32"])))))
+| where (((EventID =~ @"7045")) and ((ServiceFileName contains @"\Temp\" or ServiceFileName contains @"\Users\Public\" or ServiceFileName contains @"\AppData\" or ServiceFileName contains @"\ProgramData\" or ServiceFileName contains @"powershell" or ServiceFileName contains @"cmd.exe /c" or ServiceFileName contains @"rundll32")))

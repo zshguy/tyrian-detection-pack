@@ -6,4 +6,4 @@
 //   __FilterToConsumerBinding (Sysmon EID 19/20/21).
 // source: rules/persistence/wmi-event-subscription.yml  (GENERATED, do not edit by hand)
 Event
-| where ((EventID =~ "19" or EventID =~ "20" or EventID =~ "21"))
+| where ((EventID =~ @"19" or EventID =~ @"20" or EventID =~ @"21"))

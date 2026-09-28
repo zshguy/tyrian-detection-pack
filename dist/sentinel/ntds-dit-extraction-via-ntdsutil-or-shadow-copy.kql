@@ -5,4 +5,4 @@
 //   ntdsutil "ac i ntds" "ifm" "create full C:\Windows\Temp\ifm" q q
 // source: rules/credential-access/ntds-dit-extraction.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\\ntdsutil.exe") and (CommandLine contains "create" and CommandLine contains "ifm")) or ((CommandLine contains "ntds.dit")))
+| where (((NewProcessName endswith @"\ntdsutil.exe") and (CommandLine contains @"create" and CommandLine contains @"ifm")) or ((CommandLine contains @"ntds.dit")))

@@ -6,4 +6,4 @@
 //   rbcd.py -delegate-to TARGET$ -delegate-from ATTACKER$ -action write domain/user:pass
 // source: rules/privilege-escalation/resource-based-constrained-delegation-write.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where ((EventID =~ "5136") and (AttributeLDAPDisplayName =~ "msDS-AllowedToActOnBehalfOfOtherIdentity"))
+| where ((EventID =~ @"5136") and (AttributeLDAPDisplayName =~ @"msDS-AllowedToActOnBehalfOfOtherIdentity"))

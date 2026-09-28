@@ -6,4 +6,4 @@
 //   Start-BitsTransfer -Source http://127.0.0.1/a.txt -Destination C:\Windows\Temp\a.txt
 // source: rules/command-and-control/bitsadmin-transfer-job.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\bitsadmin.exe") and (CommandLine has_any (dynamic(["/transfer", "/addfile", "/setnotifycmdline"])))) or ((CommandLine contains "Start-BitsTransfer" and CommandLine contains "-Source")))
+| where (((NewProcessName endswith @"\bitsadmin.exe") and (CommandLine contains @"/transfer" or CommandLine contains @"/addfile" or CommandLine contains @"/setnotifycmdline")) or ((CommandLine contains @"Start-BitsTransfer" and CommandLine contains @"-Source")))

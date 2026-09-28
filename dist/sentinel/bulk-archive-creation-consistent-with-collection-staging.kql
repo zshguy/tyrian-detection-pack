@@ -5,4 +5,4 @@
 //   7z.exe a -hp'pass' C:\Windows\Temp\loot.7z C:\Users\<user>\Documents
 // source: rules/exfiltration/archive-staging-for-exfil.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\\7z.exe" or NewProcessName endswith "\\rar.exe" or NewProcessName endswith "\\winrar.exe") and (CommandLine contains " a " or CommandLine contains " -hp")) and ((CommandLine has_any (dynamic(["\\Users\\", "\\Documents", "\\Desktop", "\\Shares"])))))
+| where (((NewProcessName endswith @"\7z.exe" or NewProcessName endswith @"\rar.exe" or NewProcessName endswith @"\winrar.exe") and (CommandLine contains @" a " or CommandLine contains @" -hp")) and ((CommandLine contains @"\Users\" or CommandLine contains @"\Documents" or CommandLine contains @"\Desktop" or CommandLine contains @"\Shares")))

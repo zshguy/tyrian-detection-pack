@@ -5,4 +5,4 @@
 //   vssadmin.exe delete shadows /all /quiet
 // source: rules/impact/ransomware-shadowcopy-deletion.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where ((((NewProcessName endswith "\vssadmin.exe") and (CommandLine contains "delete" and CommandLine contains "shadows")) or ((NewProcessName endswith "\wmic.exe") and (CommandLine contains "shadowcopy delete"))) or ((CommandLine contains "Get-WmiObject" and CommandLine contains "Win32_ShadowCopy" and CommandLine contains "Delete")))
+| where ((((NewProcessName endswith @"\vssadmin.exe") and (CommandLine contains @"delete" and CommandLine contains @"shadows")) or ((NewProcessName endswith @"\wmic.exe") and (CommandLine contains @"shadowcopy delete"))) or ((CommandLine contains @"Get-WmiObject" and CommandLine contains @"Win32_ShadowCopy" and CommandLine contains @"Delete")))
