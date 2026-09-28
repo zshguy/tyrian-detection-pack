@@ -1,0 +1,55 @@
+title: Web Server Process Spawns a Shell or Recon Tool
+id: 3f1e1b68-b5eb-4e9f-82e8-tyrian000068
+status: experimental
+description: >
+  Detects an IIS, Apache, nginx, PHP or Tomcat worker starting a command
+  interpreter or recon utility. That is what exploitation of a public-facing
+  application (and a web shell in use afterwards) looks like from the host.
+references:
+  - https://attack.mitre.org/techniques/T1190/
+  - https://attack.mitre.org/techniques/T1505/003/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  parent:
+    ParentImage|endswith:
+      - '\w3wp.exe'
+      - '\httpd.exe'
+      - '\nginx.exe'
+      - '\php-cgi.exe'
+      - '\tomcat.exe'
+      - '\tomcat8.exe'
+      - '\tomcat9.exe'
+      - '\tomcat10.exe'
+  child:
+    Image|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+      - '\pwsh.exe'
+      - '\whoami.exe'
+      - '\net.exe'
+      - '\net1.exe'
+      - '\certutil.exe'
+      - '\bitsadmin.exe'
+      - '\rundll32.exe'
+      - '\cscript.exe'
+      - '\wscript.exe'
+      - '\mshta.exe'
+  condition: parent and child
+validation:
+  atomic: T1505.003
+  fire: |-
+    Drop a test ASPX web shell into an IIS site and request it with ?cmd=whoami,
+    or from an elevated prompt: C:\Windows\System32\inetsrv\w3wp.exe is not
+    launchable by hand, so use Atomic Red Team T1505.003 against a lab IIS.
+falsepositives:
+  - Web applications that legitimately shell out (report generators, legacy CGI); allowlist by ParentCommandLine
+level: high
+tags:
+  - attack.initial_access
+  - attack.persistence
+  - attack.t1190
+  - attack.t1505.003

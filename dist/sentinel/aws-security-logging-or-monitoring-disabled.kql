@@ -1,0 +1,8 @@
+// AWS Security Logging or Monitoring Disabled
+// Detects CloudTrail trails being stopped, deleted or narrowed, and GuardDuty, AWS Config or VPC flow logs being switched off. Blinding the account's own telemetry is usually the first thing done with stolen admin keys.
+// techniques: T1562.008,T1562.001   severity: high   status: experimental
+// validate: Atomic Red Team T1562.008
+//   aws cloudtrail stop-logging --name <lab-trail>
+// source: rules/defense-evasion/aws-security-logging-disabled.yml  (GENERATED, do not edit by hand)
+AWSCloudTrail
+| where ((EventName =~ @"StopLogging" or EventName =~ @"DeleteTrail" or EventName =~ @"UpdateTrail" or EventName =~ @"PutEventSelectors" or EventName =~ @"DeleteDetector" or EventName =~ @"DeleteFlowLogs" or EventName =~ @"StopConfigurationRecorder" or EventName =~ @"DeleteConfigurationRecorder" or EventName =~ @"DeleteDeliveryChannel"))

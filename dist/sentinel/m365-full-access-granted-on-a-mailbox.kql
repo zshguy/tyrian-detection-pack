@@ -1,0 +1,8 @@
+// M365 Full Access Granted on a Mailbox
+// Detects FullAccess delegation being added to a mailbox, which lets another account read everything in it without the owner's credentials.
+// techniques: T1098.002   severity: medium   status: experimental
+// validate: Atomic Red Team T1098.002
+//   Add-MailboxPermission -Identity <lab-user> -User <other-user> -AccessRights FullAccess
+// source: rules/persistence/m365-mailbox-full-access-granted.yml  (GENERATED, do not edit by hand)
+OfficeActivity
+| where ((Operation =~ @"Add-MailboxPermission") and (Parameters contains @"FullAccess"))

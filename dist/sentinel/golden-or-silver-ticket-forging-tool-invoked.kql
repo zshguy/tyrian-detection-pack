@@ -1,0 +1,8 @@
+// Golden or Silver Ticket Forging Tool Invoked
+// Detects the command lines of the common Kerberos ticket forging tools: Mimikatz kerberos::golden (golden with /krbtgt, silver with /service), Rubeus golden and silver, and Impacket ticketer. A forged ticket leaves little on the domain controller, so the forging step is the best place to catch it.
+// techniques: T1558.001,T1558.002   severity: critical   status: experimental
+// validate: Atomic Red Team T1558.001
+//   mimikatz.exe "kerberos::golden /user:test /domain:contoso.local /sid:S-1-5-21-1-2-3 /krbtgt:00000000000000000000000000000000 /ptt" exit
+// source: rules/credential-access/forged-kerberos-ticket-tooling.yml  (GENERATED, do not edit by hand)
+Event
+| where ((CommandLine contains @"kerberos::golden" or CommandLine contains @" golden /aes256:" or CommandLine contains @" golden /rc4:" or CommandLine contains @" silver /service:" or CommandLine contains @"ticketer.py" or CommandLine contains @" /krbtgt:"))

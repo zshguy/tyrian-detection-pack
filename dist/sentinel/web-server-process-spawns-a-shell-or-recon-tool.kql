@@ -1,0 +1,10 @@
+// Web Server Process Spawns a Shell or Recon Tool
+// Detects an IIS, Apache, nginx, PHP or Tomcat worker starting a command interpreter or recon utility. That is what exploitation of a public-facing application (and a web shell in use afterwards) looks like from the host.
+// techniques: T1190,T1505.003   severity: high   status: experimental
+// validate: Atomic Red Team T1505.003
+//   Drop a test ASPX web shell into an IIS site and request it with ?cmd=whoami,
+//   or from an elevated prompt: C:\Windows\System32\inetsrv\w3wp.exe is not
+//   launchable by hand, so use Atomic Red Team T1505.003 against a lab IIS.
+// source: rules/initial-access/web-server-spawns-shell.yml  (GENERATED, do not edit by hand)
+Event
+| where (((ParentProcessName endswith @"\w3wp.exe" or ParentProcessName endswith @"\httpd.exe" or ParentProcessName endswith @"\nginx.exe" or ParentProcessName endswith @"\php-cgi.exe" or ParentProcessName endswith @"\tomcat.exe" or ParentProcessName endswith @"\tomcat8.exe" or ParentProcessName endswith @"\tomcat9.exe" or ParentProcessName endswith @"\tomcat10.exe")) and ((NewProcessName endswith @"\cmd.exe" or NewProcessName endswith @"\powershell.exe" or NewProcessName endswith @"\pwsh.exe" or NewProcessName endswith @"\whoami.exe" or NewProcessName endswith @"\net.exe" or NewProcessName endswith @"\net1.exe" or NewProcessName endswith @"\certutil.exe" or NewProcessName endswith @"\bitsadmin.exe" or NewProcessName endswith @"\rundll32.exe" or NewProcessName endswith @"\cscript.exe" or NewProcessName endswith @"\wscript.exe" or NewProcessName endswith @"\mshta.exe")))

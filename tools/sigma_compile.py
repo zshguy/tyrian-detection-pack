@@ -191,6 +191,86 @@ SPLUNK_LINUX_FIELDS = {
     "ExecveA5": "a5",
 }
 
+# Cloud audit feeds. Each backend ingests these through its own connector, and
+# each connector names the same JSON differently, so every product gets a table
+# per backend plus a derivation for the long tail of fields (CloudTrail's
+# requestParameters.* alone is open-ended). Falling through to the Windows
+# derivation instead would turn `eventName` into `win.eventdata.eventName`: a
+# rule that deploys cleanly and can never fire.
+CLOUD_PRODUCTS = ("aws", "azure", "m365")
+
+# Sentinel's AWSCloudTrail table flattens userIdentity.* into columns and keeps
+# the request/response bodies as dynamic JSON.
+SENTINEL_AWS_FIELDS = {
+    "eventName": "EventName",
+    "eventSource": "EventSource",
+    "eventType": "EventTypeName",
+    "errorCode": "ErrorCode",
+    "errorMessage": "ErrorMessage",
+    "sourceIPAddress": "SourceIpAddress",
+    "userAgent": "UserAgent",
+    "awsRegion": "AWSRegion",
+    "recipientAccountId": "RecipientAccountId",
+    "userIdentity.type": "UserIdentityType",
+    "userIdentity.arn": "UserIdentityArn",
+    "userIdentity.userName": "UserIdentityUserName",
+    "userIdentity.accountId": "UserIdentityAccountId",
+    "userIdentity.principalId": "UserIdentityPrincipalid",
+}
+SENTINEL_AWS_DYNAMIC = {
+    "requestParameters": "RequestParameters",
+    "responseElements": "ResponseElements",
+    "additionalEventData": "AdditionalEventData",
+}
+
+# Entra ID via the Splunk Add-on for Microsoft Cloud Services (Event Hub,
+# sourcetype azure:monitor:aad). Azure Monitor's diagnostic envelope keeps a few
+# fields top level and the rest under `properties`.
+SPLUNK_AZURE_FIELDS = {
+    "ResultType": "resultType",
+    "OperationName": "operationName",
+    "Category": "category",
+    "IPAddress": "callerIpAddress",
+    "UserPrincipalName": "properties.userPrincipalName",
+    "AppDisplayName": "properties.appDisplayName",
+    "TargetResources": "properties.targetResources{}.modifiedProperties{}.newValue",
+}
+
+# OfficeActivity / the O365 management API keep `Parameters` as an array of
+# {Name, Value}. Sentinel stores it as a string, and so does Wazuh's decoder,
+# which substring matching handles. Splunk extracts it as two multivalue fields,
+# so a substring test that should see both names and values goes to _raw.
+SPLUNK_M365_FIELDS = {"Parameters": "_raw"}
+
+
+def _cloud_field(backend: str, platform: str, field: str) -> str:
+    if platform == "aws":
+        if backend == "wazuh":
+            return f"aws.{field}"  # Wazuh's aws-s3 wodle decodes CloudTrail JSON under aws.
+        if backend == "sentinel":
+            if field in SENTINEL_AWS_FIELDS:
+                return SENTINEL_AWS_FIELDS[field]
+            head, _, rest = field.partition(".")
+            if head in SENTINEL_AWS_DYNAMIC and rest:
+                return f"tostring(parse_json({SENTINEL_AWS_DYNAMIC[head]}).{rest})"
+            return "".join(part[:1].upper() + part[1:] for part in field.split("."))
+        return field  # Splunk aws:cloudtrail keeps the JSON paths as-is.
+    if platform == "m365":
+        if backend == "wazuh":
+            return f"office365.{field}"
+        if backend == "splunk":
+            return SPLUNK_M365_FIELDS.get(field, field)
+        return field  # OfficeActivity uses the management API names.
+    # azure (Entra ID sign-in and audit logs)
+    if backend == "splunk":
+        return SPLUNK_AZURE_FIELDS.get(field, "properties." + field[:1].lower() + field[1:])
+    if backend == "sentinel" and field == "TargetResources":
+        return "tostring(TargetResources)"
+    # Sentinel columns carry the Log Analytics names, and Wazuh's azure-logs
+    # module forwards Log Analytics rows as flat JSON under those same names.
+    return field
+
+
 # Sigma logsource -> the table/index each backend reads.
 WAZUH_GROUPS = {
     ("windows", "security"): "windows,windows_security,",
@@ -204,6 +284,9 @@ WAZUH_GROUPS = {
     # way) is still a Windows rule, and dropping it to "unknown" would strip
     # scoping from the majority of any real corpus.
     ("windows", None): "windows,",
+    ("aws", None): "amazon,aws,",
+    ("azure", None): "azure,",
+    ("m365", None): "office365,",
 }
 WAZUH_IF_GROUP = {
     ("windows", "sysmon"): "sysmon_event1",
@@ -213,6 +296,9 @@ WAZUH_IF_GROUP = {
     ("linux", "auditd"): "audit",
     ("linux", None): "syslog",
     ("windows", None): "windows",
+    ("aws", None): "amazon",
+    ("azure", None): "azure",
+    ("m365", None): "office365",
 }
 SENTINEL_TABLES = {
     ("windows", "security"): "SecurityEvent",
@@ -220,6 +306,11 @@ SENTINEL_TABLES = {
     ("windows", "system"): "Event",
     ("windows", "powershell"): "Event",
     ("linux", None): "Syslog",
+    ("aws", None): "AWSCloudTrail",
+    ("azure", "signinlogs"): "SigninLogs",
+    ("azure", "auditlogs"): "AuditLogs",
+    ("azure", "activitylogs"): "AzureActivity",
+    ("m365", None): "OfficeActivity",
 }
 SPLUNK_SOURCETYPES = {
     ("windows", "security"): 'source="WinEventLog:Security"',
@@ -228,6 +319,9 @@ SPLUNK_SOURCETYPES = {
     ("windows", "powershell"): 'source="WinEventLog:Microsoft-Windows-PowerShell/Operational"',
     ("linux", "auditd"): 'sourcetype="auditd"',
     ("linux", None): 'sourcetype="linux_secure"',
+    ("aws", None): 'sourcetype="aws:cloudtrail"',
+    ("azure", None): 'sourcetype="azure:monitor:aad"',
+    ("m365", None): 'sourcetype="o365:management:activity"',
 }
 
 LEVEL_TO_WAZUH = {"informational": 3, "low": 5, "medium": 8, "high": 12, "critical": 14}
@@ -670,7 +764,10 @@ def logsource_key(rule: dict) -> tuple:
 
 def platform_of(rule: dict) -> str:
     """Which field taxonomy a rule speaks. Drives field resolution per backend."""
-    return "linux" if rule.get("logsource", {}).get("product") == "linux" else "windows"
+    product = rule.get("logsource", {}).get("product")
+    if product == "linux" or product in CLOUD_PRODUCTS:
+        return product
+    return "windows"
 
 
 # Windows falls back to a derived Sysmon field name because Sysmon's schema is
@@ -737,6 +834,8 @@ def resolve_field(backend: str, platform: str, field: str) -> str:
             f"add it to {backend.upper()}_{platform.upper()}_FIELDS or use one of "
             f"{sorted(strict)}"
         )
+    if platform in CLOUD_PRODUCTS:
+        return _cloud_field(backend, platform, field)
     if backend == "wazuh":
         return WAZUH_FIELDS.get(field, f"win.eventdata.{field[0].lower() + field[1:]}")
     if backend == "sentinel":
@@ -1007,6 +1106,11 @@ def render_wazuh(rules: list[dict]) -> str:
                     # already scopes natively, so it is not a decoder field lookup.
                     same = by if by == "host" else resolve_field("wazuh", platform, by)
                     out.append(f"    <same_field>{same}</same_field>")
+                if agg.get("field"):
+                    # count(field) means distinct values. Without this Wazuh
+                    # counts events, so ten failures against ONE account would
+                    # pass for a spray across ten.
+                    out.append(f"    <different_field>{resolve_field('wazuh', platform, agg['field'])}</different_field>")
             out.append(f"    <description>{sx.escape(label)}</description>")
             if credit:
                 out.append(f'    <info type="text">{sx.escape(credit)}</info>')
@@ -1117,7 +1221,8 @@ def render_splunk(rules: list[dict]) -> str:
             op = " AND " if kind == "and" else " OR "
             return "(" + op.join(render(c) for c in node[1:]) + ")"
 
-        src = SPLUNK_SOURCETYPES.get(logsource_key(rule), "")
+        key = logsource_key(rule)
+        src = SPLUNK_SOURCETYPES.get(key) or SPLUNK_SOURCETYPES.get((key[0], None), "")
         spl = f"index=* {src} {render(tree)}".strip()
         agg = rule_aggregation(rule)
         if agg:
@@ -1189,7 +1294,8 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
         # built a custom table and DCR for it. There is no field mapping that is
         # right for everyone, and `SyslogMessage contains "/usr/bin/nc"` is not
         # the same detection as `Image == "/usr/bin/nc"`. Skip and say so.
-        if platform_of(rule) == "linux":
+        platform = platform_of(rule)
+        if platform == "linux":
             skipped.append((rule["_path"], "auditd has no faithful Sentinel field mapping"))
             continue
         # Sigma unfielded keywords mean "anywhere in the event". KQL can only say
@@ -1210,7 +1316,7 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
                 block = det[node[1]]
                 clauses = []
                 for field, mods, values in iter_field_matches(block):
-                    kf = SENTINEL_FIELDS.get(field, field)
+                    kf = resolve_field("sentinel", platform, field)
                     joiner = " and " if "all" in mods else " or "
                     clauses.append("(" + joiner.join(_kql_value(kf, v, mods) for v in values) + ")")
                 return "(" + " and ".join(clauses) + ")" if clauses else "(true)"
@@ -1219,7 +1325,8 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
             op = " and " if kind == "and" else " or "
             return "(" + op.join(render(c) for c in node[1:]) + ")"
 
-        table = SENTINEL_TABLES.get(logsource_key(rule), "SecurityEvent")
+        key = logsource_key(rule)
+        table = SENTINEL_TABLES.get(key) or SENTINEL_TABLES.get((key[0], None), "SecurityEvent")
         techs = ",".join(t.split(".", 1)[1].upper() for t in rule["tags"] if str(t).startswith("attack.t"))
         body = [
             f"// {rule['title']}",
@@ -1232,8 +1339,8 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
         ]
         agg = rule_aggregation(rule)
         if agg:
-            by = SENTINEL_FIELDS.get(agg.get("by") or "", agg.get("by") or "Computer")
-            reducer = f"dcount({SENTINEL_FIELDS.get(agg['field'], agg['field'])})" if agg["field"] else "count()"
+            by = resolve_field("sentinel", platform, agg["by"]) if agg.get("by") else "Computer"
+            reducer = f"dcount({resolve_field('sentinel', platform, agg['field'])})" if agg["field"] else "count()"
             body.append(f"| summarize Hits={reducer} by bin(TimeGenerated, {agg['timeframe']}), {by}")
             body.append(f"| where Hits {agg['op']} {agg['threshold']}")
         slug = re.sub(r"[^a-z0-9]+", "-", rule["title"].lower()).strip("-")
@@ -1287,7 +1394,7 @@ def render_navigator(rules: list[dict]) -> str:
             "compiled to Wazuh, Splunk and Sentinel. "
             "https://github.com/zshguy/tyrian-detection-pack"
         ),
-        "filters": {"platforms": ["Windows", "Linux"]},
+        "filters": {"platforms": ["Windows", "Linux", "IaaS", "Office Suite", "Identity Provider", "SaaS"]},
         "sorting": 0,
         "layout": {"layout": "side", "showID": True, "showName": True},
         "hideDisabled": False,
@@ -1347,7 +1454,7 @@ def render_coverage(rules: list[dict]) -> str:
         "GENERATED by `python tools/sigma_compile.py --backend coverage`. Do not edit by hand.",
         "",
         f"**{len(rules)} rules** covering **{len(techs)} ATT&CK techniques** across "
-        f"**{len({r['_tactic'] for r in rules})} tactics** on {' and '.join(platforms)}.",
+        f"**{len({r['_tactic'] for r in rules})} tactics** on {', '.join(platforms[:-1]) + ' and ' + platforms[-1] if len(platforms) > 1 else platforms[0]}.",
         "",
         f"{stable} rules are marked `stable`, meaning the detection was tuned against telemetry",
         f"from a live detonation. The remaining {len(rules) - stable} are `experimental`: the logic is",

@@ -1,0 +1,40 @@
+title: Entra ID Privileged Directory Role Assigned
+id: 4f19c4f2-3835-45dd-9964-tyrian000081
+status: experimental
+description: >
+  Detects an account being made (or made eligible for) a tenant-wide admin
+  role such as Global Administrator or Privileged Role Administrator.
+references:
+  - https://attack.mitre.org/techniques/T1098/003/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: azure
+  service: auditlogs
+detection:
+  selection:
+    OperationName:
+      - 'Add member to role'
+      - 'Add eligible member to role'
+      - 'Add member to role completed (PIM activation)'
+  privileged:
+    TargetResources|contains:
+      - 'Global Administrator'
+      - 'Privileged Role Administrator'
+      - 'Privileged Authentication Administrator'
+      - 'Application Administrator'
+      - 'Cloud Application Administrator'
+      - 'Security Administrator'
+      - 'Exchange Administrator'
+  condition: selection and privileged
+validation:
+  atomic: T1098.003
+  fire: |-
+    New-MgRoleManagementDirectoryRoleAssignment -PrincipalId <lab-user-id> -RoleDefinitionId 62e90394-69f5-4237-9190-012177145e10 -DirectoryScopeId /
+falsepositives:
+  - Planned admin onboarding; correlate with the identity team's change log
+level: high
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1098.003

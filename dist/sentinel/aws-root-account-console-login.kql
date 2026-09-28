@@ -1,0 +1,8 @@
+// AWS Root Account Console Login
+// Detects a console sign-in as the account root user. Root should be locked away behind hardware MFA and almost never used, so any login deserves a look.
+// techniques: T1078.004   severity: high   status: experimental
+// validate: Atomic Red Team T1078.004
+//   Sign in to a lab account's console with the root user email and password.
+// source: rules/initial-access/aws-root-console-login.yml  (GENERATED, do not edit by hand)
+AWSCloudTrail
+| where ((EventName =~ @"ConsoleLogin") and (UserIdentityType =~ @"Root"))

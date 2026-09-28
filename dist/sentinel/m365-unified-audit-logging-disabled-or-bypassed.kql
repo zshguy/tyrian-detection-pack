@@ -1,0 +1,8 @@
+// M365 Unified Audit Logging Disabled or Bypassed
+// Detects the unified audit log being switched off, or a mailbox being exempted from mailbox auditing. Both remove the record of what a compromised account does next.
+// techniques: T1562.008   severity: high   status: experimental
+// validate: Atomic Red Team T1562.008
+//   Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $false
+// source: rules/defense-evasion/m365-audit-logging-disabled.yml  (GENERATED, do not edit by hand)
+OfficeActivity
+| where (((Operation =~ @"Set-AdminAuditLogConfig") and (Parameters contains @"UnifiedAuditLogIngestionEnabled")) or ((Operation =~ @"Set-MailboxAuditBypassAssociation")))

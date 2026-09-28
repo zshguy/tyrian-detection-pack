@@ -1,0 +1,9 @@
+// RDP Session Hijack via tscon
+// Detects tscon.exe connecting a session to another destination. Run as SYSTEM it takes over another user's disconnected RDP session without their password.
+// techniques: T1563.002   severity: high   status: experimental
+// validate: Atomic Red Team T1563.002
+//   query user
+//   sc create sesshijack binpath= "cmd.exe /k tscon 2 /dest:rdp-tcp#0" && net start sesshijack
+// source: rules/lateral-movement/rdp-session-hijack-tscon.yml  (GENERATED, do not edit by hand)
+Event
+| where ((NewProcessName endswith @"\tscon.exe") and (CommandLine contains @"/dest:"))

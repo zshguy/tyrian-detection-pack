@@ -1,0 +1,30 @@
+title: AWS S3 Public Access Block Removed
+id: 999be7b6-e1fe-4e07-97a8-tyrian000078
+status: experimental
+description: >
+  Detects removal of the S3 Block Public Access setting on a bucket or across
+  the account, which is the prerequisite for exposing bucket contents publicly.
+references:
+  - https://attack.mitre.org/techniques/T1530/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventName:
+      - 'DeleteBucketPublicAccessBlock'
+      - 'DeletePublicAccessBlock'
+  condition: selection
+validation:
+  atomic: T1530
+  fire: |-
+    aws s3api delete-public-access-block --bucket <lab-bucket>
+falsepositives:
+  - Buckets that intentionally host public static websites
+level: high
+tags:
+  - attack.collection
+  - attack.exfiltration
+  - attack.t1530

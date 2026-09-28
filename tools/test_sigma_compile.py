@@ -277,6 +277,47 @@ class SentinelLiterals(unittest.TestCase):
         self.assertIn('matches regex @"(?i)a.*b"', kql)
 
 
+class CloudLogsources(unittest.TestCase):
+    """Cloud fields must land in each connector's namespace, never win.eventdata."""
+
+    def _rule(self, product, service, sel, cond="selection"):
+        return rule(logsource={"product": product, "service": service},
+                    detection={"selection": sel, "condition": cond})
+
+    def test_aws_fields_per_backend(self):
+        r = self._rule("aws", "cloudtrail", {"eventName": "StopLogging",
+                                             "requestParameters.policyArn": "x"})
+        xml = sc.render_wazuh([r])
+        self.assertIn('name="aws.eventName"', xml)
+        self.assertIn("<if_group>amazon</if_group>", xml)
+        self.assertNotIn("win.eventdata", xml)
+        self.assertIn('sourcetype="aws:cloudtrail"', sc.render_splunk([r]))
+        kql = sc.render_sentinel([r])[0][0][1]
+        self.assertIn("AWSCloudTrail", kql)
+        self.assertIn('EventName =~ @"StopLogging"', kql)
+        self.assertIn("tostring(parse_json(RequestParameters).policyArn)", kql)
+
+    def test_entra_signin_table_and_splunk_envelope(self):
+        r = self._rule("azure", "signinlogs", {"ResultType": "50126"},
+                       "selection | count(UserPrincipalName) by IPAddress >= 10")
+        self.assertIn("SigninLogs", sc.render_sentinel([r])[0][0][1])
+        spl = sc.render_splunk([r])
+        self.assertIn('resultType="50126"', spl)
+        self.assertIn("dc(properties.userPrincipalName)", spl)
+
+    def test_m365_uses_office365_namespace(self):
+        r = self._rule("m365", "exchange", {"Operation": "New-InboxRule"})
+        self.assertIn('name="office365.Operation"', sc.render_wazuh([r]))
+        self.assertIn("OfficeActivity", sc.render_sentinel([r])[0][0][1])
+
+    def test_wazuh_distinct_count_uses_different_field(self):
+        r = self._rule("azure", "signinlogs", {"ResultType": "50126"},
+                       "selection | count(UserPrincipalName) by IPAddress >= 10")
+        xml = sc.render_wazuh([r])
+        self.assertIn("<same_field>IPAddress</same_field>", xml)
+        self.assertIn("<different_field>UserPrincipalName</different_field>", xml)
+
+
 class BundledCorpus(unittest.TestCase):
     def test_every_shipped_rule_meets_the_house_standard(self):
         problems = {r["_path"]: sc.validate(r) for r in sc.load_rules()}

@@ -1,0 +1,8 @@
+// AWS AdministratorAccess Policy Attached
+// Detects the AWS managed AdministratorAccess policy being attached to a user, role or group. Granting a foothold identity full admin is a common way to make stolen access durable.
+// techniques: T1098.003   severity: high   status: experimental
+// validate: Atomic Red Team T1098.003
+//   aws iam attach-user-policy --user-name <lab-user> --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+// source: rules/persistence/aws-iam-admin-policy-attached.yml  (GENERATED, do not edit by hand)
+AWSCloudTrail
+| where ((EventSource =~ @"iam.amazonaws.com") and (EventName =~ @"AttachUserPolicy" or EventName =~ @"AttachRolePolicy" or EventName =~ @"AttachGroupPolicy") and (tostring(parse_json(RequestParameters).policyArn) endswith @":policy/AdministratorAccess"))

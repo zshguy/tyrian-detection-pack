@@ -1,0 +1,28 @@
+title: M365 Full Access Granted on a Mailbox
+id: b9cb7529-8392-4464-80a2-tyrian000084
+status: experimental
+description: >
+  Detects FullAccess delegation being added to a mailbox, which lets another
+  account read everything in it without the owner's credentials.
+references:
+  - https://attack.mitre.org/techniques/T1098/002/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: m365
+  service: exchange
+detection:
+  selection:
+    Operation: 'Add-MailboxPermission'
+    Parameters|contains: 'FullAccess'
+  condition: selection
+validation:
+  atomic: T1098.002
+  fire: |-
+    Add-MailboxPermission -Identity <lab-user> -User <other-user> -AccessRights FullAccess
+falsepositives:
+  - Shared mailbox and executive assistant delegation
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1098.002

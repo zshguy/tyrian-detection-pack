@@ -1,0 +1,8 @@
+// Entra ID Privileged Directory Role Assigned
+// Detects an account being made (or made eligible for) a tenant-wide admin role such as Global Administrator or Privileged Role Administrator.
+// techniques: T1098.003   severity: high   status: experimental
+// validate: Atomic Red Team T1098.003
+//   New-MgRoleManagementDirectoryRoleAssignment -PrincipalId <lab-user-id> -RoleDefinitionId 62e90394-69f5-4237-9190-012177145e10 -DirectoryScopeId /
+// source: rules/persistence/entra-privileged-role-assigned.yml  (GENERATED, do not edit by hand)
+AuditLogs
+| where (((OperationName =~ @"Add member to role" or OperationName =~ @"Add eligible member to role" or OperationName =~ @"Add member to role completed (PIM activation)")) and ((tostring(TargetResources) contains @"Global Administrator" or tostring(TargetResources) contains @"Privileged Role Administrator" or tostring(TargetResources) contains @"Privileged Authentication Administrator" or tostring(TargetResources) contains @"Application Administrator" or tostring(TargetResources) contains @"Cloud Application Administrator" or tostring(TargetResources) contains @"Security Administrator" or tostring(TargetResources) contains @"Exchange Administrator")))
