@@ -1156,6 +1156,9 @@ def _kql_str(s: str) -> str:
 def _kql_value(field: str, value, mods: list[str]) -> str:
     if value is None:
         return f'isempty({field})'
+    # EventID and friends are int columns; `=~ "22"` does not compare an int.
+    if isinstance(value, int) and not isinstance(value, bool) and not mods:
+        return f'{field} == {value}'
     v = str(value)
     if "re" in mods:
         return f'{field} matches regex {_kql_str(v)}'

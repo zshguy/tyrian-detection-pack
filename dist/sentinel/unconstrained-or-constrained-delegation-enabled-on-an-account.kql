@@ -6,4 +6,4 @@
 //   Set-ADUser svc_web -Add @{'msDS-AllowedToDelegateTo'='CIFS/dc01.tyrian.lab'}
 // source: rules/privilege-escalation/unconstrained-delegation-enabled.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ @"5136") and (AttributeLDAPDisplayName =~ @"msDS-AllowedToDelegateTo")) or ((EventID =~ @"5136") and (AttributeLDAPDisplayName =~ @"userAccountControl") and (AttributeValue contains @"524288" or AttributeValue contains @"16777216")))
+| where (((EventID == 5136) and (AttributeLDAPDisplayName =~ @"msDS-AllowedToDelegateTo")) or ((EventID == 5136) and (AttributeLDAPDisplayName =~ @"userAccountControl") and (AttributeValue contains @"524288" or AttributeValue contains @"16777216")))

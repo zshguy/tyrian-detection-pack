@@ -6,4 +6,4 @@
 //   sc start tyriantest
 // source: rules/privilege-escalation/vulnerable-driver-loaded-byovd.yml  (GENERATED, do not edit by hand)
 Event
-| where ((EventID =~ @"6") and (ImageLoaded endswith @"\iqvw64e.sys" or ImageLoaded endswith @"\RTCore64.sys" or ImageLoaded endswith @"\gdrv.sys" or ImageLoaded endswith @"\dbutil_2_3.sys" or ImageLoaded endswith @"\DBUtilDrv2.sys" or ImageLoaded endswith @"\procexp152.sys" or ImageLoaded endswith @"\truesight.sys" or ImageLoaded endswith @"\viragt64.sys" or ImageLoaded endswith @"\aswArPot.sys" or ImageLoaded endswith @"\mhyprot2.sys"))
+| where ((EventID == 6) and (ImageLoaded endswith @"\iqvw64e.sys" or ImageLoaded endswith @"\RTCore64.sys" or ImageLoaded endswith @"\gdrv.sys" or ImageLoaded endswith @"\dbutil_2_3.sys" or ImageLoaded endswith @"\DBUtilDrv2.sys" or ImageLoaded endswith @"\procexp152.sys" or ImageLoaded endswith @"\truesight.sys" or ImageLoaded endswith @"\viragt64.sys" or ImageLoaded endswith @"\aswArPot.sys" or ImageLoaded endswith @"\mhyprot2.sys"))

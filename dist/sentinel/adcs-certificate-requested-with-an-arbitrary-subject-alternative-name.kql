@@ -6,4 +6,4 @@
 //   Certify.exe request /ca:ca.domain\CA-NAME /template:VulnTemplate /altname:administrator
 // source: rules/credential-access/adcs-esc1-san-certificate-request.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ @"4886" or EventID =~ @"4887")) and ((Attributes contains @"SAN:" or Attributes contains @"subjectaltname" or Attributes contains @"upn=")))
+| where (((EventID == 4886 or EventID == 4887)) and ((Attributes contains @"SAN:" or Attributes contains @"subjectaltname" or Attributes contains @"upn=")))

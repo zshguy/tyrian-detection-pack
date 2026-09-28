@@ -5,4 +5,4 @@
 //   dsacls "CN=AdminSDHolder,CN=System,DC=tyrian,DC=lab" /G tyrian\attacker:GA
 // source: rules/persistence/adminsdholder-acl-modification.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where ((EventID =~ @"5136" or EventID =~ @"4662") and (ObjectDN contains @"CN=AdminSDHolder"))
+| where ((EventID == 5136 or EventID == 4662) and (ObjectDN contains @"CN=AdminSDHolder"))

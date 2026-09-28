@@ -7,4 +7,4 @@
 //   Atomic Red Team T1055 includes a minimal C# injector for this.
 // source: rules/defense-evasion/process-injection-createremotethread.yml  (GENERATED, do not edit by hand)
 Event
-| where ((((EventID =~ @"8")) and ((TargetImage endswith @"\lsass.exe" or TargetImage endswith @"\explorer.exe" or TargetImage endswith @"\svchost.exe" or TargetImage endswith @"\winlogon.exe" or TargetImage endswith @"\notepad.exe" or TargetImage endswith @"\rundll32.exe"))) and not ((SourceImage endswith @"\csrss.exe" or SourceImage endswith @"\wininit.exe" or SourceImage endswith @"\services.exe" or SourceImage endswith @"\MsMpEng.exe")))
+| where ((((EventID == 8)) and ((TargetImage endswith @"\lsass.exe" or TargetImage endswith @"\explorer.exe" or TargetImage endswith @"\svchost.exe" or TargetImage endswith @"\winlogon.exe" or TargetImage endswith @"\notepad.exe" or TargetImage endswith @"\rundll32.exe"))) and not ((SourceImage endswith @"\csrss.exe" or SourceImage endswith @"\wininit.exe" or SourceImage endswith @"\services.exe" or SourceImage endswith @"\MsMpEng.exe")))

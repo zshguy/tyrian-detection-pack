@@ -6,4 +6,4 @@
 //   SharpGPOAbuse.exe --AddComputerTask --GPOName "Default Domain Policy" --Command cmd.exe --Arguments "/c whoami"
 // source: rules/privilege-escalation/group-policy-object-modified.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ @"5136") and (ObjectClass =~ @"groupPolicyContainer")) or ((EventID =~ @"5145") and (ShareName contains @"SYSVOL") and (RelativeTargetName contains @"Policies")))
+| where (((EventID == 5136) and (ObjectClass =~ @"groupPolicyContainer")) or ((EventID == 5145) and (ShareName contains @"SYSVOL") and (RelativeTargetName contains @"Policies")))

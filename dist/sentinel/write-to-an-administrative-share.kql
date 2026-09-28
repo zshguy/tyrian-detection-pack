@@ -5,4 +5,4 @@
 //   copy payload.exe \\<host>\C$\Windows\Temp\payload.exe
 // source: rules/lateral-movement/smb-admin-share-write.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ @"5145") and (ObjectName contains @"ADMIN$" or ObjectName contains @"C$")) and not ((SubjectUserName endswith @"$")))
+| where (((EventID == 5145) and (ObjectName contains @"ADMIN$" or ObjectName contains @"C$")) and not ((SubjectUserName endswith @"$")))

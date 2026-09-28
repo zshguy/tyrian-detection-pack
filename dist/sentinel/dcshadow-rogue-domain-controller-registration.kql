@@ -6,4 +6,4 @@
 //   mimikatz "lsadump::dcshadow /push"
 // source: rules/defense-evasion/dcshadow-rogue-domain-controller.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ @"5137") and (ObjectClass =~ @"nTDSDSA")) or ((EventID =~ @"5136") and (AttributeLDAPDisplayName =~ @"servicePrincipalName") and (AttributeValue contains @"GC/" or AttributeValue contains @"E3514235-4B06-11D1-AB04-00C04FC2DCD2")))
+| where (((EventID == 5137) and (ObjectClass =~ @"nTDSDSA")) or ((EventID == 5136) and (AttributeLDAPDisplayName =~ @"servicePrincipalName") and (AttributeValue contains @"GC/" or AttributeValue contains @"E3514235-4B06-11D1-AB04-00C04FC2DCD2")))

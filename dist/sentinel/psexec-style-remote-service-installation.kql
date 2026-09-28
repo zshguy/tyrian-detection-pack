@@ -5,4 +5,4 @@
 //   PsExec.exe \\<host> -accepteula cmd.exe
 // source: rules/lateral-movement/psexec-service-creation.yml  (GENERATED, do not edit by hand)
 Event
-| where (((EventID =~ @"7045")) and (((ServiceName matches regex @"^[A-Za-z0-9]{8}$")) or ((ImagePath contains @"\ADMIN$\" or ImagePath contains @"\PSEXESVC" or ImagePath contains @"\Windows\Temp\" or ImagePath contains @"-s cmd"))))
+| where (((EventID == 7045)) and (((ServiceName matches regex @"^[A-Za-z0-9]{8}$")) or ((ImagePath contains @"\ADMIN$\" or ImagePath contains @"\PSEXESVC" or ImagePath contains @"\Windows\Temp\" or ImagePath contains @"-s cmd"))))
