@@ -6,4 +6,4 @@
 //   net localgroup administrators svcbackup /add
 // source: rules/persistence/new-local-admin-account.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where ((EventID =~ "4728" or EventID =~ "4732" or EventID =~ "4756"))
+| where ((EventID == 4728 or EventID == 4732 or EventID == 4756))

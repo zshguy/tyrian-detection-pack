@@ -6,11 +6,15 @@
     "layer": "4.5"
   },
   "domain": "enterprise-attack",
-  "description": "67 open-source Sigma detections covering 64 techniques, compiled to Wazuh, Splunk and Sentinel. https://github.com/zshguy/tyrian-detection-pack",
+  "description": "85 open-source Sigma detections covering 79 techniques, compiled to Wazuh, Splunk and Sentinel. https://github.com/zshguy/tyrian-detection-pack",
   "filters": {
     "platforms": [
       "Windows",
-      "Linux"
+      "Linux",
+      "IaaS",
+      "Office Suite",
+      "Identity Provider",
+      "SaaS"
     ]
   },
   "sorting": 0,
@@ -93,6 +97,23 @@
       "techniqueID": "T1003.008",
       "score": 1,
       "comment": "Linux Password Hash File Accessed by a User [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1021.001",
+      "score": 1,
+      "comment": "Remote Desktop Enabled via Registry [experimental, medium]",
       "enabled": true,
       "metadata": [
         {
@@ -413,6 +434,23 @@
       "showSubtechniques": true
     },
     {
+      "techniqueID": "T1078.004",
+      "score": 1,
+      "comment": "AWS Root Account Console Login [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
       "techniqueID": "T1082",
       "score": 1,
       "comment": "Linux Host Enumeration Burst [experimental, medium]",
@@ -481,6 +519,57 @@
       "showSubtechniques": true
     },
     {
+      "techniqueID": "T1098.001",
+      "score": 1,
+      "comment": "Entra ID Credentials Added to an Application or Service Principal [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1098.002",
+      "score": 1,
+      "comment": "M365 Full Access Granted on a Mailbox [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1098.003",
+      "score": 2,
+      "comment": "AWS AdministratorAccess Policy Attached [experimental, high]\nEntra ID Privileged Directory Role Assigned [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
       "techniqueID": "T1098.004",
       "score": 1,
       "comment": "Linux SSH authorized_keys Modified [experimental, high]",
@@ -516,13 +605,13 @@
     },
     {
       "techniqueID": "T1110.003",
-      "score": 1,
-      "comment": "Password Spraying, Many Accounts from One Source [stable, high]\n\n1 of 1 validated on a live range.",
+      "score": 2,
+      "comment": "Entra ID Password Spray From One IP [experimental, high]\nPassword Spraying, Many Accounts from One Source [stable, high]\n\n1 of 2 validated on a live range.",
       "enabled": true,
       "metadata": [
         {
           "name": "rules",
-          "value": "1"
+          "value": "2"
         },
         {
           "name": "validated",
@@ -533,13 +622,13 @@
     },
     {
       "techniqueID": "T1112",
-      "score": 1,
-      "comment": "WDigest UseLogonCredential Enabled (Cleartext Credential Staging) [stable, critical]\n\n1 of 1 validated on a live range.",
+      "score": 2,
+      "comment": "WDigest UseLogonCredential Enabled (Cleartext Credential Staging) [stable, critical]\nRemote Desktop Enabled via Registry [experimental, medium]\n\n1 of 2 validated on a live range.",
       "enabled": true,
       "metadata": [
         {
           "name": "rules",
-          "value": "1"
+          "value": "2"
         },
         {
           "name": "validated",
@@ -549,14 +638,31 @@
       "showSubtechniques": true
     },
     {
-      "techniqueID": "T1134.001",
+      "techniqueID": "T1114.003",
       "score": 1,
-      "comment": "Resource-Based Constrained Delegation Configured on an Object [experimental, critical]",
+      "comment": "M365 Mailbox Forwarding or Redirect Rule Created [experimental, high]",
       "enabled": true,
       "metadata": [
         {
           "name": "rules",
           "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1134.001",
+      "score": 2,
+      "comment": "Logon With New Credentials (Logon Type 9) [experimental, medium]\nResource-Based Constrained Delegation Configured on an Object [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
         },
         {
           "name": "validated",
@@ -583,9 +689,43 @@
       "showSubtechniques": true
     },
     {
+      "techniqueID": "T1190",
+      "score": 1,
+      "comment": "Web Server Process Spawns a Shell or Recon Tool [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
       "techniqueID": "T1197",
       "score": 1,
       "comment": "File Transfer via BITS [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1204.002",
+      "score": 1,
+      "comment": "Script Host Runs a Script From an Archive or Downloads Folder [experimental, high]",
       "enabled": true,
       "metadata": [
         {
@@ -770,6 +910,40 @@
       "showSubtechniques": true
     },
     {
+      "techniqueID": "T1505.003",
+      "score": 1,
+      "comment": "Web Server Process Spawns a Shell or Recon Tool [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1530",
+      "score": 1,
+      "comment": "AWS S3 Public Access Block Removed [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
       "techniqueID": "T1543.002",
       "score": 1,
       "comment": "Linux systemd Unit Created or Modified [experimental, high]",
@@ -873,8 +1047,25 @@
     },
     {
       "techniqueID": "T1550.002",
+      "score": 2,
+      "comment": "Pass-the-Hash via NTLM Network Logon [experimental, medium]\nLogon With New Credentials (Logon Type 9) [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1550.003",
       "score": 1,
-      "comment": "Pass-the-Hash via NTLM Network Logon [experimental, medium]",
+      "comment": "Unconstrained or Constrained Delegation Enabled on an Account [experimental, high]",
       "enabled": true,
       "metadata": [
         {
@@ -889,9 +1080,9 @@
       "showSubtechniques": true
     },
     {
-      "techniqueID": "T1550.003",
+      "techniqueID": "T1555.003",
       "score": 1,
-      "comment": "Unconstrained or Constrained Delegation Enabled on an Account [experimental, high]",
+      "comment": "Browser Credential Store Accessed From the Command Line [experimental, high]",
       "enabled": true,
       "metadata": [
         {
@@ -941,8 +1132,25 @@
     },
     {
       "techniqueID": "T1558.001",
+      "score": 2,
+      "comment": "Golden or Silver Ticket Forging Tool Invoked [experimental, critical]\nkrbtgt Account Password Reset or Modified [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1558.002",
       "score": 1,
-      "comment": "krbtgt Account Password Reset or Modified [experimental, critical]",
+      "comment": "Golden or Silver Ticket Forging Tool Invoked [experimental, critical]",
       "enabled": true,
       "metadata": [
         {
@@ -1009,13 +1217,13 @@
     },
     {
       "techniqueID": "T1562.001",
-      "score": 4,
-      "comment": "Microsoft Defender Protection Disabled [stable, critical]\nLinux Audit Subsystem Tampered With [experimental, critical]\nAMSI Bypass Attempt in PowerShell [stable, critical]\nKnown Vulnerable Driver Loaded (BYOVD) [experimental, critical]\n\n2 of 4 validated on a live range.",
+      "score": 5,
+      "comment": "AWS Security Logging or Monitoring Disabled [experimental, high]\nMicrosoft Defender Protection Disabled [stable, critical]\nLinux Audit Subsystem Tampered With [experimental, critical]\nAMSI Bypass Attempt in PowerShell [stable, critical]\nKnown Vulnerable Driver Loaded (BYOVD) [experimental, critical]\n\n2 of 5 validated on a live range.",
       "enabled": true,
       "metadata": [
         {
           "name": "rules",
-          "value": "4"
+          "value": "5"
         },
         {
           "name": "validated",
@@ -1025,14 +1233,48 @@
       "showSubtechniques": true
     },
     {
-      "techniqueID": "T1566.001",
+      "techniqueID": "T1562.008",
+      "score": 2,
+      "comment": "AWS Security Logging or Monitoring Disabled [experimental, high]\nM365 Unified Audit Logging Disabled or Bypassed [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1563.002",
       "score": 1,
-      "comment": "Office Application Spawns a Script Interpreter [stable, high]\n\n1 of 1 validated on a live range.",
+      "comment": "RDP Session Hijack via tscon [experimental, high]",
       "enabled": true,
       "metadata": [
         {
           "name": "rules",
           "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1566.001",
+      "score": 2,
+      "comment": "Office Application Spawns a Script Interpreter [stable, high]\nScript Host Runs a Script From an Archive or Downloads Folder [experimental, high]\n\n1 of 2 validated on a live range.",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "2"
         },
         {
           "name": "validated",
@@ -1079,6 +1321,23 @@
       "techniqueID": "T1611",
       "score": 1,
       "comment": "Linux Container Escape Attempt [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1621",
+      "score": 1,
+      "comment": "Entra ID MFA Push Fatigue [experimental, high]",
       "enabled": true,
       "metadata": [
         {

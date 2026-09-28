@@ -1,0 +1,38 @@
+title: Golden or Silver Ticket Forging Tool Invoked
+id: 8edd4c6e-9efc-4122-a04d-tyrian000074
+status: experimental
+description: >
+  Detects the command lines of the common Kerberos ticket forging tools:
+  Mimikatz kerberos::golden (golden with /krbtgt, silver with /service),
+  Rubeus golden and silver, and Impacket ticketer. A forged ticket leaves
+  little on the domain controller, so the forging step is the best place to
+  catch it.
+references:
+  - https://attack.mitre.org/techniques/T1558/001/
+  - https://attack.mitre.org/techniques/T1558/002/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    CommandLine|contains:
+      - 'kerberos::golden'
+      - ' golden /aes256:'
+      - ' golden /rc4:'
+      - ' silver /service:'
+      - 'ticketer.py'
+      - ' /krbtgt:'
+  condition: selection
+validation:
+  atomic: T1558.001
+  fire: |-
+    mimikatz.exe "kerberos::golden /user:test /domain:contoso.local /sid:S-1-5-21-1-2-3 /krbtgt:00000000000000000000000000000000 /ptt" exit
+falsepositives:
+  - Authorised red team activity
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1558.001
+  - attack.t1558.002

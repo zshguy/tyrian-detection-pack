@@ -191,6 +191,86 @@ SPLUNK_LINUX_FIELDS = {
     "ExecveA5": "a5",
 }
 
+# Cloud audit feeds. Each backend ingests these through its own connector, and
+# each connector names the same JSON differently, so every product gets a table
+# per backend plus a derivation for the long tail of fields (CloudTrail's
+# requestParameters.* alone is open-ended). Falling through to the Windows
+# derivation instead would turn `eventName` into `win.eventdata.eventName`: a
+# rule that deploys cleanly and can never fire.
+CLOUD_PRODUCTS = ("aws", "azure", "m365")
+
+# Sentinel's AWSCloudTrail table flattens userIdentity.* into columns and keeps
+# the request/response bodies as dynamic JSON.
+SENTINEL_AWS_FIELDS = {
+    "eventName": "EventName",
+    "eventSource": "EventSource",
+    "eventType": "EventTypeName",
+    "errorCode": "ErrorCode",
+    "errorMessage": "ErrorMessage",
+    "sourceIPAddress": "SourceIpAddress",
+    "userAgent": "UserAgent",
+    "awsRegion": "AWSRegion",
+    "recipientAccountId": "RecipientAccountId",
+    "userIdentity.type": "UserIdentityType",
+    "userIdentity.arn": "UserIdentityArn",
+    "userIdentity.userName": "UserIdentityUserName",
+    "userIdentity.accountId": "UserIdentityAccountId",
+    "userIdentity.principalId": "UserIdentityPrincipalid",
+}
+SENTINEL_AWS_DYNAMIC = {
+    "requestParameters": "RequestParameters",
+    "responseElements": "ResponseElements",
+    "additionalEventData": "AdditionalEventData",
+}
+
+# Entra ID via the Splunk Add-on for Microsoft Cloud Services (Event Hub,
+# sourcetype azure:monitor:aad). Azure Monitor's diagnostic envelope keeps a few
+# fields top level and the rest under `properties`.
+SPLUNK_AZURE_FIELDS = {
+    "ResultType": "resultType",
+    "OperationName": "operationName",
+    "Category": "category",
+    "IPAddress": "callerIpAddress",
+    "UserPrincipalName": "properties.userPrincipalName",
+    "AppDisplayName": "properties.appDisplayName",
+    "TargetResources": "properties.targetResources{}.modifiedProperties{}.newValue",
+}
+
+# OfficeActivity / the O365 management API keep `Parameters` as an array of
+# {Name, Value}. Sentinel stores it as a string, and so does Wazuh's decoder,
+# which substring matching handles. Splunk extracts it as two multivalue fields,
+# so a substring test that should see both names and values goes to _raw.
+SPLUNK_M365_FIELDS = {"Parameters": "_raw"}
+
+
+def _cloud_field(backend: str, platform: str, field: str) -> str:
+    if platform == "aws":
+        if backend == "wazuh":
+            return f"aws.{field}"  # Wazuh's aws-s3 wodle decodes CloudTrail JSON under aws.
+        if backend == "sentinel":
+            if field in SENTINEL_AWS_FIELDS:
+                return SENTINEL_AWS_FIELDS[field]
+            head, _, rest = field.partition(".")
+            if head in SENTINEL_AWS_DYNAMIC and rest:
+                return f"tostring(parse_json({SENTINEL_AWS_DYNAMIC[head]}).{rest})"
+            return "".join(part[:1].upper() + part[1:] for part in field.split("."))
+        return field  # Splunk aws:cloudtrail keeps the JSON paths as-is.
+    if platform == "m365":
+        if backend == "wazuh":
+            return f"office365.{field}"
+        if backend == "splunk":
+            return SPLUNK_M365_FIELDS.get(field, field)
+        return field  # OfficeActivity uses the management API names.
+    # azure (Entra ID sign-in and audit logs)
+    if backend == "splunk":
+        return SPLUNK_AZURE_FIELDS.get(field, "properties." + field[:1].lower() + field[1:])
+    if backend == "sentinel" and field == "TargetResources":
+        return "tostring(TargetResources)"
+    # Sentinel columns carry the Log Analytics names, and Wazuh's azure-logs
+    # module forwards Log Analytics rows as flat JSON under those same names.
+    return field
+
+
 # Sigma logsource -> the table/index each backend reads.
 WAZUH_GROUPS = {
     ("windows", "security"): "windows,windows_security,",
@@ -204,6 +284,9 @@ WAZUH_GROUPS = {
     # way) is still a Windows rule, and dropping it to "unknown" would strip
     # scoping from the majority of any real corpus.
     ("windows", None): "windows,",
+    ("aws", None): "amazon,aws,",
+    ("azure", None): "azure,",
+    ("m365", None): "office365,",
 }
 WAZUH_IF_GROUP = {
     ("windows", "sysmon"): "sysmon_event1",
@@ -213,6 +296,9 @@ WAZUH_IF_GROUP = {
     ("linux", "auditd"): "audit",
     ("linux", None): "syslog",
     ("windows", None): "windows",
+    ("aws", None): "amazon",
+    ("azure", None): "azure",
+    ("m365", None): "office365",
 }
 SENTINEL_TABLES = {
     ("windows", "security"): "SecurityEvent",
@@ -220,6 +306,11 @@ SENTINEL_TABLES = {
     ("windows", "system"): "Event",
     ("windows", "powershell"): "Event",
     ("linux", None): "Syslog",
+    ("aws", None): "AWSCloudTrail",
+    ("azure", "signinlogs"): "SigninLogs",
+    ("azure", "auditlogs"): "AuditLogs",
+    ("azure", "activitylogs"): "AzureActivity",
+    ("m365", None): "OfficeActivity",
 }
 SPLUNK_SOURCETYPES = {
     ("windows", "security"): 'source="WinEventLog:Security"',
@@ -228,6 +319,9 @@ SPLUNK_SOURCETYPES = {
     ("windows", "powershell"): 'source="WinEventLog:Microsoft-Windows-PowerShell/Operational"',
     ("linux", "auditd"): 'sourcetype="auditd"',
     ("linux", None): 'sourcetype="linux_secure"',
+    ("aws", None): 'sourcetype="aws:cloudtrail"',
+    ("azure", None): 'sourcetype="azure:monitor:aad"',
+    ("m365", None): 'sourcetype="o365:management:activity"',
 }
 
 LEVEL_TO_WAZUH = {"informational": 3, "low": 5, "medium": 8, "high": 12, "critical": 14}
@@ -385,15 +479,46 @@ def split_field(key: str) -> tuple[str, list[str]]:
     return parts[0], parts[1:]
 
 
+# Sigma string escaping (spec + pySigma): `*` and `?` are wildcards, and a
+# backslash escapes a following `*`, `?` or `\\`. Any other backslash is a
+# literal. So `'\\\\lsass.exe'` and `'\\lsass.exe'` both mean one backslash.
+# Treating every character literally made `\\\\powershell.exe` demand TWO
+# backslashes in the event: a rule that deploys cleanly and never fires.
+WILD_MANY, WILD_ONE = object(), object()
+
+
+def sigma_tokens(v: str) -> list:
+    """Split a Sigma value into literal characters and wildcard markers."""
+    out, i = [], 0
+    while i < len(v):
+        ch = v[i]
+        if ch == "\\" and i + 1 < len(v) and v[i + 1] in "*?\\":
+            out.append(v[i + 1])
+            i += 2
+            continue
+        out.append(WILD_MANY if ch == "*" else WILD_ONE if ch == "?" else ch)
+        i += 1
+    return out
+
+
+def has_wildcard(v: str) -> bool:
+    return any(t is WILD_MANY or t is WILD_ONE for t in sigma_tokens(v))
+
+
+def sigma_literal(v: str) -> str:
+    """The value with escapes resolved. Only meaningful when it has no wildcards."""
+    return "".join(t for t in sigma_tokens(v) if isinstance(t, str))
+
+
 def wildcard_to_regex(v: str) -> str:
     out = []
-    for ch in v:
-        if ch == "*":
+    for t in sigma_tokens(v):
+        if t is WILD_MANY:
             out.append(".*")
-        elif ch == "?":
+        elif t is WILD_ONE:
             out.append(".")
         else:
-            out.append(re.escape(ch))
+            out.append(re.escape(t))
     return "".join(out)
 
 
@@ -639,7 +764,10 @@ def logsource_key(rule: dict) -> tuple:
 
 def platform_of(rule: dict) -> str:
     """Which field taxonomy a rule speaks. Drives field resolution per backend."""
-    return "linux" if rule.get("logsource", {}).get("product") == "linux" else "windows"
+    product = rule.get("logsource", {}).get("product")
+    if product == "linux" or product in CLOUD_PRODUCTS:
+        return product
+    return "windows"
 
 
 # Windows falls back to a derived Sysmon field name because Sysmon's schema is
@@ -706,6 +834,8 @@ def resolve_field(backend: str, platform: str, field: str) -> str:
             f"add it to {backend.upper()}_{platform.upper()}_FIELDS or use one of "
             f"{sorted(strict)}"
         )
+    if platform in CLOUD_PRODUCTS:
+        return _cloud_field(backend, platform, field)
     if backend == "wazuh":
         return WAZUH_FIELDS.get(field, f"win.eventdata.{field[0].lower() + field[1:]}")
     if backend == "sentinel":
@@ -949,13 +1079,18 @@ def render_wazuh(rules: list[dict]) -> str:
                     parts = [to_regex(v, mods, unfielded=not wf) for v in values]
                     if "all" in mods and len(parts) > 1:
                         # `|all` means every value must be present. Alternation
-                        # would mean "any", so require PCRE2 and AND them with
-                        # lookaheads. Wazuh's default osregex has no lookahead.
+                        # would mean "any", so AND them with lookaheads.
                         pattern = "".join(f"(?=.*{p})" for p in parts)
-                        attr = ' type="pcre2"'
                     else:
                         pattern = "|".join(parts)
-                        attr = ' type="pcre2"' if len(parts) > 1 else ""
+                    # Always PCRE2: the patterns are Python-style regex, which
+                    # Wazuh's default osregex does not speak (there `\.` means
+                    # "any character"). And Sigma matching is case-insensitive
+                    # unless |cased, or |re which is case-sensitive by spec, so
+                    # `-EncodedCommand` must also catch `-encodedcommand`.
+                    if "cased" not in mods and "re" not in mods:
+                        pattern = "(?i)" + pattern
+                    attr = ' type="pcre2"'
                     if wf:
                         out.append(f'    <field name="{wf}"{attr}>{sx.escape(pattern)}</field>')
                     else:
@@ -971,6 +1106,11 @@ def render_wazuh(rules: list[dict]) -> str:
                     # already scopes natively, so it is not a decoder field lookup.
                     same = by if by == "host" else resolve_field("wazuh", platform, by)
                     out.append(f"    <same_field>{same}</same_field>")
+                if agg.get("field"):
+                    # count(field) means distinct values. Without this Wazuh
+                    # counts events, so ten failures against ONE account would
+                    # pass for a spray across ten.
+                    out.append(f"    <different_field>{resolve_field('wazuh', platform, agg['field'])}</different_field>")
             out.append(f"    <description>{sx.escape(label)}</description>")
             if credit:
                 out.append(f'    <info type="text">{sx.escape(credit)}</info>')
@@ -1026,7 +1166,15 @@ def _splunk_value(field: str, value, mods: list[str]) -> str:
         return f'NOT {field}=*' if field else "NOT _raw=*"
     v = str(value)
     if "re" in mods:
-        return f'match({field or "_raw"}, "{v}")'
+        rx = v.replace("\\", "\\\\").replace('"', '\\"')
+        return f'match({field or "_raw"}, "{rx}")'
+    # Resolve Sigma escapes, then escape for an SPL quoted string. SPL has no
+    # single-character wildcard, so `?` widens to `*` rather than matching a
+    # literal question mark that is almost never there.
+    v = "".join(
+        "*" if t is WILD_MANY or t is WILD_ONE else t.replace("\\", "\\\\").replace('"', '\\"')
+        for t in sigma_tokens(v)
+    )
     if "contains" in mods:
         v = f"*{v}*"
     elif "startswith" in mods:
@@ -1073,7 +1221,8 @@ def render_splunk(rules: list[dict]) -> str:
             op = " AND " if kind == "and" else " OR "
             return "(" + op.join(render(c) for c in node[1:]) + ")"
 
-        src = SPLUNK_SOURCETYPES.get(logsource_key(rule), "")
+        key = logsource_key(rule)
+        src = SPLUNK_SOURCETYPES.get(key) or SPLUNK_SOURCETYPES.get((key[0], None), "")
         spl = f"index=* {src} {render(tree)}".strip()
         agg = rule_aggregation(rule)
         if agg:
@@ -1103,24 +1252,38 @@ def render_splunk(rules: list[dict]) -> str:
 # --------------------------------------------------------------------------
 # Backend: Microsoft Sentinel (KQL)
 # --------------------------------------------------------------------------
+def _kql_str(s: str) -> str:
+    """A KQL verbatim string literal. Backslashes are everywhere in Windows
+    detections, and in a regular KQL string `"\\lsass.exe"` is a syntax error."""
+    return '@"' + s.replace('"', '""') + '"'
+
+
 def _kql_value(field: str, value, mods: list[str]) -> str:
     if value is None:
         return f'isempty({field})'
+    # EventID and friends are int columns; `=~ "22"` does not compare an int.
+    if isinstance(value, int) and not isinstance(value, bool) and not mods:
+        return f'{field} == {value}'
     v = str(value)
     if "re" in mods:
-        return f'{field} matches regex "{v}"'
-    op = "=~"
-    if "cased" in mods:
-        op = "=="
+        return f'{field} matches regex {_kql_str(v)}'
+    if has_wildcard(v):
+        # contains/startswith/endswith take literals in KQL, so an embedded
+        # wildcard has to become an (anchored as appropriate) regex.
+        core = wildcard_to_regex(v)
+        head = "" if ("contains" in mods or "endswith" in mods) else "^"
+        tail = "" if ("contains" in mods or "startswith" in mods) else "$"
+        flag = "" if "cased" in mods else "(?i)"
+        return f'{field} matches regex {_kql_str(flag + head + core + tail)}'
+    lit = _kql_str(sigma_literal(v))
+    cs = "_cs" if "cased" in mods else ""
     if "contains" in mods:
-        return f'{field} contains "{v}"'
+        return f'{field} contains{cs} {lit}'
     if "startswith" in mods:
-        return f'{field} startswith "{v}"'
+        return f'{field} startswith{cs} {lit}'
     if "endswith" in mods:
-        return f'{field} endswith "{v}"'
-    if "*" in v or "?" in v:
-        return f'{field} matches regex "{wildcard_to_regex(v)}"'
-    return f'{field} {op} "{v}"'
+        return f'{field} endswith{cs} {lit}'
+    return f'{field} {"==" if cs else "=~"} {lit}'
 
 
 def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
@@ -1131,7 +1294,8 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
         # built a custom table and DCR for it. There is no field mapping that is
         # right for everyone, and `SyslogMessage contains "/usr/bin/nc"` is not
         # the same detection as `Image == "/usr/bin/nc"`. Skip and say so.
-        if platform_of(rule) == "linux":
+        platform = platform_of(rule)
+        if platform == "linux":
             skipped.append((rule["_path"], "auditd has no faithful Sentinel field mapping"))
             continue
         # Sigma unfielded keywords mean "anywhere in the event". KQL can only say
@@ -1152,20 +1316,7 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
                 block = det[node[1]]
                 clauses = []
                 for field, mods, values in iter_field_matches(block):
-                    kf = SENTINEL_FIELDS.get(field, field)
-                    # Collapse a multi-value OR into has_any(dynamic([...])). It is
-                    # the idiomatic KQL, it is materially faster in Sentinel than a
-                    # chain of `or X contains`, and it keeps long rules readable.
-                    if (
-                        len(values) > 2
-                        and "all" not in mods
-                        and "re" not in mods
-                        and "contains" in mods
-                        and all(v is not None for v in values)
-                    ):
-                        arr = ", ".join(f'"{v}"' for v in values)
-                        clauses.append(f"({kf} has_any (dynamic([{arr}])))")
-                        continue
+                    kf = resolve_field("sentinel", platform, field)
                     joiner = " and " if "all" in mods else " or "
                     clauses.append("(" + joiner.join(_kql_value(kf, v, mods) for v in values) + ")")
                 return "(" + " and ".join(clauses) + ")" if clauses else "(true)"
@@ -1174,7 +1325,8 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
             op = " and " if kind == "and" else " or "
             return "(" + op.join(render(c) for c in node[1:]) + ")"
 
-        table = SENTINEL_TABLES.get(logsource_key(rule), "SecurityEvent")
+        key = logsource_key(rule)
+        table = SENTINEL_TABLES.get(key) or SENTINEL_TABLES.get((key[0], None), "SecurityEvent")
         techs = ",".join(t.split(".", 1)[1].upper() for t in rule["tags"] if str(t).startswith("attack.t"))
         body = [
             f"// {rule['title']}",
@@ -1187,8 +1339,8 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
         ]
         agg = rule_aggregation(rule)
         if agg:
-            by = SENTINEL_FIELDS.get(agg.get("by") or "", agg.get("by") or "Computer")
-            reducer = f"dcount({SENTINEL_FIELDS.get(agg['field'], agg['field'])})" if agg["field"] else "count()"
+            by = resolve_field("sentinel", platform, agg["by"]) if agg.get("by") else "Computer"
+            reducer = f"dcount({resolve_field('sentinel', platform, agg['field'])})" if agg["field"] else "count()"
             body.append(f"| summarize Hits={reducer} by bin(TimeGenerated, {agg['timeframe']}), {by}")
             body.append(f"| where Hits {agg['op']} {agg['threshold']}")
         slug = re.sub(r"[^a-z0-9]+", "-", rule["title"].lower()).strip("-")
@@ -1242,7 +1394,7 @@ def render_navigator(rules: list[dict]) -> str:
             "compiled to Wazuh, Splunk and Sentinel. "
             "https://github.com/zshguy/tyrian-detection-pack"
         ),
-        "filters": {"platforms": ["Windows", "Linux"]},
+        "filters": {"platforms": ["Windows", "Linux", "IaaS", "Office Suite", "Identity Provider", "SaaS"]},
         "sorting": 0,
         "layout": {"layout": "side", "showID": True, "showName": True},
         "hideDisabled": False,
@@ -1302,7 +1454,7 @@ def render_coverage(rules: list[dict]) -> str:
         "GENERATED by `python tools/sigma_compile.py --backend coverage`. Do not edit by hand.",
         "",
         f"**{len(rules)} rules** covering **{len(techs)} ATT&CK techniques** across "
-        f"**{len({r['_tactic'] for r in rules})} tactics** on {' and '.join(platforms)}.",
+        f"**{len({r['_tactic'] for r in rules})} tactics** on {', '.join(platforms[:-1]) + ' and ' + platforms[-1] if len(platforms) > 1 else platforms[0]}.",
         "",
         f"{stable} rules are marked `stable`, meaning the detection was tuned against telemetry",
         f"from a live detonation. The remaining {len(rules) - stable} are `experimental`: the logic is",

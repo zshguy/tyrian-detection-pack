@@ -6,4 +6,4 @@
 //   secretsdump.py -just-dc <domain>/<user>@<dc>
 // source: rules/credential-access/dcsync-replication-rights.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ "4662") and (Properties has_any (dynamic(["1131f6aa-9c07-11d1-f79f-00c04fc2dcd2", "1131f6ad-9c07-11d1-f79f-00c04fc2dcd2", "89e95b76-444d-4c62-991a-0facbeda640c"])))) and not ((SubjectUserName endswith "$")))
+| where (((EventID == 4662) and (Properties contains @"1131f6aa-9c07-11d1-f79f-00c04fc2dcd2" or Properties contains @"1131f6ad-9c07-11d1-f79f-00c04fc2dcd2" or Properties contains @"89e95b76-444d-4c62-991a-0facbeda640c")) and not ((SubjectUserName endswith @"$")))

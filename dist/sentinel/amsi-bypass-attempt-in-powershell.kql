@@ -6,4 +6,4 @@
 //   script block logging (EID 4104) enabled.
 // source: rules/defense-evasion/powershell-amsi-bypass.yml  (GENERATED, do not edit by hand)
 Event
-| where ((ScriptBlockText has_any (dynamic(["amsiInitFailed", "AmsiUtils", "AmsiScanBuffer", "System.Management.Automation.AmsiUtils"]))))
+| where ((ScriptBlockText contains @"amsiInitFailed" or ScriptBlockText contains @"AmsiUtils" or ScriptBlockText contains @"AmsiScanBuffer" or ScriptBlockText contains @"System.Management.Automation.AmsiUtils"))

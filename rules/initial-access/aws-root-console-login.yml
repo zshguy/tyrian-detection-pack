@@ -1,0 +1,29 @@
+title: AWS Root Account Console Login
+id: d7819811-9a2e-4109-948b-tyrian000076
+status: experimental
+description: >
+  Detects a console sign-in as the account root user. Root should be locked
+  away behind hardware MFA and almost never used, so any login deserves a look.
+references:
+  - https://attack.mitre.org/techniques/T1078/004/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventName: 'ConsoleLogin'
+    userIdentity.type: 'Root'
+  condition: selection
+validation:
+  atomic: T1078.004
+  fire: |-
+    Sign in to a lab account's console with the root user email and password.
+falsepositives:
+  - The handful of tasks that genuinely require root (billing, account closure)
+level: high
+tags:
+  - attack.initial_access
+  - attack.persistence
+  - attack.t1078.004

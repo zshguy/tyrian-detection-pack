@@ -1,0 +1,31 @@
+title: M365 Unified Audit Logging Disabled or Bypassed
+id: a73d719e-40a6-46d1-8a38-tyrian000085
+status: experimental
+description: >
+  Detects the unified audit log being switched off, or a mailbox being
+  exempted from mailbox auditing. Both remove the record of what a
+  compromised account does next.
+references:
+  - https://attack.mitre.org/techniques/T1562/008/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: m365
+  service: exchange
+detection:
+  audit_config:
+    Operation: 'Set-AdminAuditLogConfig'
+    Parameters|contains: 'UnifiedAuditLogIngestionEnabled'
+  bypass:
+    Operation: 'Set-MailboxAuditBypassAssociation'
+  condition: audit_config or bypass
+validation:
+  atomic: T1562.008
+  fire: |-
+    Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled $false
+falsepositives:
+  - Re-enabling audit logging fires audit_config too; check the parameter value
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.t1562.008

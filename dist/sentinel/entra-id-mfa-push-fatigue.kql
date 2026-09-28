@@ -1,0 +1,10 @@
+// Entra ID MFA Push Fatigue
+// Detects repeated MFA challenges that the user did not complete (error 500121) for one account in a short window: the pattern of an attacker with a valid password spamming push prompts until the user approves one.
+// techniques: T1621   severity: high   status: experimental
+// validate: Atomic Red Team T1621
+//   Sign in to a lab account with its password and deny the MFA prompt five times.
+// source: rules/credential-access/entra-mfa-fatigue.yml  (GENERATED, do not edit by hand)
+SigninLogs
+| where ((ResultType =~ @"500121"))
+| summarize Hits=count() by bin(TimeGenerated, 10m), UserPrincipalName
+| where Hits >= 5

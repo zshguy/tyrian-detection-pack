@@ -1,0 +1,38 @@
+title: AWS Security Logging or Monitoring Disabled
+id: 39fff3df-105d-4711-ba44-tyrian000075
+status: experimental
+description: >
+  Detects CloudTrail trails being stopped, deleted or narrowed, and GuardDuty,
+  AWS Config or VPC flow logs being switched off. Blinding the account's own
+  telemetry is usually the first thing done with stolen admin keys.
+references:
+  - https://attack.mitre.org/techniques/T1562/008/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventName:
+      - 'StopLogging'
+      - 'DeleteTrail'
+      - 'UpdateTrail'
+      - 'PutEventSelectors'
+      - 'DeleteDetector'
+      - 'DeleteFlowLogs'
+      - 'StopConfigurationRecorder'
+      - 'DeleteConfigurationRecorder'
+      - 'DeleteDeliveryChannel'
+  condition: selection
+validation:
+  atomic: T1562.008
+  fire: |-
+    aws cloudtrail stop-logging --name <lab-trail>
+falsepositives:
+  - Infrastructure-as-code redeploying a trail; allowlist the deployment role ARN
+level: high
+tags:
+  - attack.defense_evasion
+  - attack.t1562.008
+  - attack.t1562.001

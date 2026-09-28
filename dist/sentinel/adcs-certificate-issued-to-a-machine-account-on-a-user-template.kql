@@ -6,4 +6,4 @@
 //   ntlmrelayx.py -t http://ca.domain/certsrv/certfnsh.asp -smb2support --adcs --template DomainController
 // source: rules/credential-access/adcs-machine-account-user-certificate.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ "4886" or EventID =~ "4887") and (Requester endswith "$")) and ((Attributes has_any (dynamic(["CertificateTemplate:User", "CertificateTemplate:DomainController", "CertificateTemplate:KerberosAuthentication"])))))
+| where (((EventID == 4886 or EventID == 4887) and (Requester endswith @"$")) and ((Attributes contains @"CertificateTemplate:User" or Attributes contains @"CertificateTemplate:DomainController" or Attributes contains @"CertificateTemplate:KerberosAuthentication")))

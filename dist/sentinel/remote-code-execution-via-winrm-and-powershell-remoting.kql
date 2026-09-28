@@ -5,4 +5,4 @@
 //   Invoke-Command -ComputerName <host> -ScriptBlock { whoami }
 // source: rules/lateral-movement/winrm-remoting-child-process.yml  (GENERATED, do not edit by hand)
 Event
-| where ((ParentProcessName endswith "\\wsmprovhost.exe"))
+| where ((ParentProcessName endswith @"\wsmprovhost.exe"))

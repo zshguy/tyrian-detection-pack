@@ -1,0 +1,29 @@
+title: Entra ID MFA Push Fatigue
+id: 4229ea26-2d60-4a1e-987e-tyrian000080
+status: experimental
+description: >
+  Detects repeated MFA challenges that the user did not complete (error
+  500121) for one account in a short window: the pattern of an attacker with a
+  valid password spamming push prompts until the user approves one.
+references:
+  - https://attack.mitre.org/techniques/T1621/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: azure
+  service: signinlogs
+detection:
+  selection:
+    ResultType: '500121'
+  timeframe: 10m
+  condition: selection | count() by UserPrincipalName >= 5
+validation:
+  atomic: T1621
+  fire: |-
+    Sign in to a lab account with its password and deny the MFA prompt five times.
+falsepositives:
+  - Users with a broken authenticator app retrying
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1621

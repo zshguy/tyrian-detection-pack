@@ -6,4 +6,4 @@
 //   GetNPUsers.py -dc-ip <dc> <domain>/ -usersfile users.txt
 // source: rules/credential-access/asrep-roasting-no-preauth.yml  (GENERATED, do not edit by hand)
 SecurityEvent
-| where (((EventID =~ "4768") and (TicketOptions =~ "0x40810010") and (TicketEncryptionType =~ "0x17" or TicketEncryptionType =~ "0x18")) and not ((TargetUserName endswith "$")))
+| where (((EventID == 4768) and (TicketOptions =~ @"0x40810010") and (TicketEncryptionType =~ @"0x17" or TicketEncryptionType =~ @"0x18")) and not ((TargetUserName endswith @"$")))

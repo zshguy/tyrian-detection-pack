@@ -1,0 +1,8 @@
+// Script Host Runs a Script From an Archive or Downloads Folder
+// Detects wscript, cscript or mshta running a script straight out of a just-opened archive (Explorer's Temp1_ folders, 7-Zip and WinRAR temp directories) or the Downloads folder. Zipped JavaScript and HTA attachments are one of the most common first-stage loaders.
+// techniques: T1566.001,T1204.002   severity: high   status: experimental
+// validate: Atomic Red Team T1204.002
+//   echo WScript.Echo("t") > %USERPROFILE%\Downloads\invoice.js && wscript.exe %USERPROFILE%\Downloads\invoice.js
+// source: rules/initial-access/script-from-archive-or-downloads.yml  (GENERATED, do not edit by hand)
+Event
+| where (((NewProcessName endswith @"\wscript.exe" or NewProcessName endswith @"\cscript.exe" or NewProcessName endswith @"\mshta.exe")) and ((CommandLine contains @"\AppData\Local\Temp\Temp1_" or CommandLine contains @"\AppData\Local\Temp\7z" or CommandLine contains @"\AppData\Local\Temp\Rar$" or CommandLine contains @"\Downloads\")))

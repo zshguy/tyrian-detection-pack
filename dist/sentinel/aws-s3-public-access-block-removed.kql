@@ -1,0 +1,8 @@
+// AWS S3 Public Access Block Removed
+// Detects removal of the S3 Block Public Access setting on a bucket or across the account, which is the prerequisite for exposing bucket contents publicly.
+// techniques: T1530   severity: high   status: experimental
+// validate: Atomic Red Team T1530
+//   aws s3api delete-public-access-block --bucket <lab-bucket>
+// source: rules/collection/aws-s3-public-access-block-removed.yml  (GENERATED, do not edit by hand)
+AWSCloudTrail
+| where ((EventName =~ @"DeleteBucketPublicAccessBlock" or EventName =~ @"DeletePublicAccessBlock"))

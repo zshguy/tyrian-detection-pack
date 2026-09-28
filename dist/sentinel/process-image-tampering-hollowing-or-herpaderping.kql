@@ -7,4 +7,4 @@
 //   Requires Sysmon 13 or later for event ID 25.
 // source: rules/defense-evasion/process-image-tampering-hollowing.yml  (GENERATED, do not edit by hand)
 Event
-| where ((EventID =~ "25"))
+| where ((EventID == 25))

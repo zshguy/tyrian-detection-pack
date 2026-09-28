@@ -221,6 +221,103 @@ class ForeignCorpora(unittest.TestCase):
                          "credential-access")
 
 
+class SigmaEscapes(unittest.TestCase):
+    """`\\` in a Sigma value is ONE literal backslash. Rendering it as two made
+    every rule written that way demand `\\powershell.exe` in the event."""
+
+    def _rule(self, value, mod="endswith"):
+        return rule(detection={"selection": {f"Image|{mod}": value}, "condition": "selection"})
+
+    def test_escaped_and_bare_backslash_compile_identically(self):
+        a = sc.render_wazuh([self._rule("\\\\evil.exe")])
+        b = sc.render_wazuh([self._rule("\\evil.exe")])
+        self.assertEqual(a, b)
+        self.assertIn(r"(?i)\\evil\.exe$</field>", a)
+
+    def test_escaped_wildcard_is_literal(self):
+        self.assertEqual(sc.wildcard_to_regex("a\\*b*"), r"a\*b.*")
+
+    def test_splunk_escapes_the_backslash_once(self):
+        spl = sc.render_splunk([self._rule("\\\\evil.exe")])
+        self.assertIn(r'Image="*\\evil.exe"', spl)
+
+
+class CaseInsensitivity(unittest.TestCase):
+    """Sigma matches case-insensitively unless |cased; Wazuh PCRE2 does not."""
+
+    def test_wazuh_patterns_are_case_insensitive(self):
+        xml = sc.render_wazuh([rule()])
+        self.assertIn('type="pcre2">(?i)', xml)
+
+    def test_cased_and_re_stay_case_sensitive(self):
+        for mod in ("endswith|cased", "re"):
+            r = rule(detection={"selection": {f"Image|{mod}": "evil"}, "condition": "selection"})
+            self.assertNotIn("(?i)", sc.render_wazuh([r]))
+
+
+class SentinelLiterals(unittest.TestCase):
+    def _kql(self, det):
+        files, _ = sc.render_sentinel([rule(detection=det)])
+        return files[0][1]
+
+    def test_backslashes_use_verbatim_strings(self):
+        # A regular KQL string "\evil.exe" is a syntax error.
+        kql = self._kql({"selection": {"Image|endswith": "\\evil.exe"}, "condition": "selection"})
+        self.assertIn('endswith @"\\evil.exe"', kql)
+
+    def test_contains_is_substring_not_term_match(self):
+        # has_any matches whole terms, so ' -enc' would miss '-EncodedCommand'.
+        kql = self._kql({"selection": {"CommandLine|contains": [" -enc", " -e ", " -ec "]},
+                         "condition": "selection"})
+        self.assertNotIn("has_any", kql)
+        self.assertIn('contains @" -enc"', kql)
+
+    def test_wildcard_inside_contains_becomes_a_regex(self):
+        kql = self._kql({"selection": {"CommandLine|contains": "a*b"}, "condition": "selection"})
+        self.assertIn('matches regex @"(?i)a.*b"', kql)
+
+
+class CloudLogsources(unittest.TestCase):
+    """Cloud fields must land in each connector's namespace, never win.eventdata."""
+
+    def _rule(self, product, service, sel, cond="selection"):
+        return rule(logsource={"product": product, "service": service},
+                    detection={"selection": sel, "condition": cond})
+
+    def test_aws_fields_per_backend(self):
+        r = self._rule("aws", "cloudtrail", {"eventName": "StopLogging",
+                                             "requestParameters.policyArn": "x"})
+        xml = sc.render_wazuh([r])
+        self.assertIn('name="aws.eventName"', xml)
+        self.assertIn("<if_group>amazon</if_group>", xml)
+        self.assertNotIn("win.eventdata", xml)
+        self.assertIn('sourcetype="aws:cloudtrail"', sc.render_splunk([r]))
+        kql = sc.render_sentinel([r])[0][0][1]
+        self.assertIn("AWSCloudTrail", kql)
+        self.assertIn('EventName =~ @"StopLogging"', kql)
+        self.assertIn("tostring(parse_json(RequestParameters).policyArn)", kql)
+
+    def test_entra_signin_table_and_splunk_envelope(self):
+        r = self._rule("azure", "signinlogs", {"ResultType": "50126"},
+                       "selection | count(UserPrincipalName) by IPAddress >= 10")
+        self.assertIn("SigninLogs", sc.render_sentinel([r])[0][0][1])
+        spl = sc.render_splunk([r])
+        self.assertIn('resultType="50126"', spl)
+        self.assertIn("dc(properties.userPrincipalName)", spl)
+
+    def test_m365_uses_office365_namespace(self):
+        r = self._rule("m365", "exchange", {"Operation": "New-InboxRule"})
+        self.assertIn('name="office365.Operation"', sc.render_wazuh([r]))
+        self.assertIn("OfficeActivity", sc.render_sentinel([r])[0][0][1])
+
+    def test_wazuh_distinct_count_uses_different_field(self):
+        r = self._rule("azure", "signinlogs", {"ResultType": "50126"},
+                       "selection | count(UserPrincipalName) by IPAddress >= 10")
+        xml = sc.render_wazuh([r])
+        self.assertIn("<same_field>IPAddress</same_field>", xml)
+        self.assertIn("<different_field>UserPrincipalName</different_field>", xml)
+
+
 class BundledCorpus(unittest.TestCase):
     def test_every_shipped_rule_meets_the_house_standard(self):
         problems = {r["_path"]: sc.validate(r) for r in sc.load_rules()}

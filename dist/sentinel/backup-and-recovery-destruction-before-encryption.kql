@@ -6,4 +6,4 @@
 //   bcdedit /set {default} recoveryenabled No
 // source: rules/impact/backup-deletion-wbadmin-bcdedit.yml  (GENERATED, do not edit by hand)
 Event
-| where (((CommandLine contains "wbadmin delete")) or ((CommandLine contains "recoveryenabled no" or CommandLine contains "bootstatuspolicy ignoreallfailures")))
+| where (((CommandLine contains @"wbadmin delete")) or ((CommandLine contains @"recoveryenabled no" or CommandLine contains @"bootstatuspolicy ignoreallfailures")))

@@ -8,4 +8,4 @@
 //   reproduces the telemetry.
 // source: rules/command-and-control/cobalt-strike-named-pipe.yml  (GENERATED, do not edit by hand)
 Event
-| where ((EventID =~ "17" or EventID =~ "18") and (PipeName startswith "\msagent_" or PipeName startswith "\postex_" or PipeName startswith "\postex_ssh_" or PipeName startswith "\status_" or PipeName startswith "\MSSE-" or PipeName startswith "\mojo_" or PipeName startswith "\netsvc_"))
+| where ((EventID == 17 or EventID == 18) and (PipeName startswith @"\msagent_" or PipeName startswith @"\postex_" or PipeName startswith @"\postex_ssh_" or PipeName startswith @"\status_" or PipeName startswith @"\MSSE-" or PipeName startswith @"\mojo_" or PipeName startswith @"\netsvc_"))
