@@ -207,13 +207,17 @@ It implements the subset of Sigma this corpus uses, strictly. Anything outside
 that raises an error instead of emitting a wrong rule.
 
 **Supported:** string/int/list values, `null`, unfielded keyword search, the
-`contains` / `startswith` / `endswith` / `re` / `all` / `cased` modifiers, `1 of`
-and `all of` with `them` and `prefix*`, `and` / `or` / `not`, parentheses, `*`
-and `?` wildcards, Sigma escaping (`\\`, `\*`, `\?`), and
-`| count(field) by other > n` aggregation.
+`contains` / `startswith` / `endswith` / `all` / `cased` / `windash` / `cidr`
+modifiers, `re` with `i`/`m`/`s` flags, `base64` and `base64offset` with
+`utf16le` / `utf16be` / `utf16` / `wide`, `1 of` and `all of` with `them` and
+`prefix*`, `and` / `or` / `not`, parentheses, `*` and `?` wildcards, Sigma
+escaping (`\\`, `\*`, `\?`), and `| count(field) by other > n` aggregation.
 
-**Not supported (raises):** `near` correlation, `base64offset`, `utf16`, `cidr`,
-`windash`. Pull requests for these are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+**Not supported (raises):** `near` correlation, `fieldref`, `exists`, numeric
+comparisons, and any modifier not listed above. An unknown modifier is a hard
+error, not a silently dropped one: `|cidr: 10.0.0.0/8` rendered as a literal is
+a rule that deploys and never fires. Wazuh additionally refuses IPv6 and
+non-octet-aligned IPv4 CIDRs rather than widening them to a prefix regex.
 
 **Log sources:** Windows (Security, Sysmon, System, PowerShell), Linux auditd,
 AWS CloudTrail, Entra ID sign-in and audit logs, Microsoft 365 / Exchange. Each
@@ -363,8 +367,8 @@ The most useful things you can do right now, in order:
    [false positive](.github/ISSUE_TEMPLATE/false-positive.yml) template.
 2. **Add a log source.** macOS, Okta, Google Cloud and GitHub audit logs are
    the gaps. The `good first issue` label marks the ones with a worked plan.
-3. **Implement a Sigma modifier.** `windash` and `cidr` are small and would
-   unlock about 40 more SigmaHQ rules.
+3. **Implement `fieldref` or `near`.** The last Sigma constructs the compiler
+   refuses. Both need a design, not just code; open an issue first.
 
 If this saved you a toolchain, a star helps the next Wazuh operator find it.
 

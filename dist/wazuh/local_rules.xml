@@ -945,7 +945,7 @@
   <rule id="100151" level="12">
     <if_group>sysmon_event1</if_group>
     <field name="win.eventdata.image" type="pcre2">(?i)\\powershell\.exe$|\\pwsh\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)\ \-enc|\ \-EncodedCommand|\ \-e\ |\ \-ec\ </field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\ [-/–—―]e\ |\ [-/–—―]ec\ |\ [-/–—―]en</field>
     <description>PowerShell Encoded Command Execution</description>
     <info type="text">Rule by Tyrian</info>
     <info type="text">Validate (Atomic Red Team T1059.001): powershell.exe -nop -w hidden -enc &lt;base64-of-utf16le-command&gt;</info>

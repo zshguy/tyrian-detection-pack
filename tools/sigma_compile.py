@@ -22,13 +22,16 @@ instead of emitting a rule that silently means something else. A detection that
 quietly compiles to the wrong logic is worse than one that fails loudly.
 
 Supported: string/int/list values, `null`, the `contains` / `startswith` /
-`endswith` / `re` / `all` / `cased` modifiers, `1 of`/`all of` with the `them`
-keyword and `prefix*` wildcards, `and`/`or`/`not`, parentheses, wildcards (`*`,
-`?`) in values, and `|count() by x > n` aggregation (Wazuh frequency, Splunk
-stats, Sentinel summarize).
+`endswith` / `re` (with `i`/`m`/`s` flags) / `all` / `cased` / `windash` /
+`cidr` / `base64` / `base64offset` (with `utf16le`/`utf16be`/`utf16`/`wide`)
+modifiers, `1 of`/`all of` with the `them` keyword and `prefix*` wildcards,
+`and`/`or`/`not`, parentheses, wildcards (`*`, `?`) in values, and
+`|count() by x > n` aggregation (Wazuh frequency, Splunk stats, Sentinel
+summarize).
 
-Not supported (raises): `near` correlation, `base64offset`, `utf16`, `cidr`,
-backend-specific field mapping beyond the table below.
+Not supported (raises): `near` correlation, `fieldref`, `exists`, numeric
+comparison modifiers, and any modifier not listed above. Wazuh additionally
+refuses IPv6 and non-octet-aligned IPv4 `cidr` values rather than widening them.
 """
 
 from __future__ import annotations
@@ -42,6 +45,9 @@ import sys
 import time
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils as sx
+import base64
+import ipaddress
+import itertools
 
 try:
     import yaml
@@ -522,6 +528,100 @@ def wildcard_to_regex(v: str) -> str:
     return "".join(out)
 
 
+# Every modifier the compiler understands. Anything else raises: `fieldref`,
+# `exists`, `gt`/`lt` and friends have no faithful rendering on these backends,
+# and silently dropping a modifier is the worst outcome of all. `|cidr:
+# 10.0.0.0/8` rendered as a literal is a rule that deploys and never matches.
+MODS_MATCH = {"contains", "startswith", "endswith", "all", "cased", "re", "windash", "cidr"}
+MODS_ENCODE = {"base64", "base64offset", "utf16le", "utf16be", "utf16", "wide"}
+MODS_RE_FLAGS = {"i", "m", "s"}
+KNOWN_MODS = MODS_MATCH | MODS_ENCODE | MODS_RE_FLAGS
+
+# pySigma's base64offset: three encodings, one per alignment of the plaintext
+# inside the surrounding base64 stream, each trimmed of the boundary characters
+# that depend on the unknown neighbours.
+_B64_START = (0, 2, 3)
+_B64_END = (None, -3, -2)
+
+# The dash variants `windash` stands for, as pySigma enumerates them.
+WINDASH = ["-", "/", "\u2013", "\u2014", "\u2015"]
+
+
+def expand_values(values: list, mods: list[str]) -> tuple[list, list[str]]:
+    """Apply the encoding modifiers, which turn one value into one or more
+    literal strings, and strip them from the modifier list. Also the place an
+    unknown modifier is refused, before any backend renders it."""
+    unknown = [m for m in mods if m not in KNOWN_MODS]
+    if unknown:
+        raise Unsupported(f"unsupported modifier{'s' if len(unknown) > 1 else ''} "
+                          f"{'|'.join(unknown)!r} (known: {', '.join(sorted(KNOWN_MODS))})")
+    if "re" in mods and (set(mods) & (MODS_MATCH - {"re"})):
+        raise Unsupported("`re` cannot be combined with other matching modifiers")
+    if "cidr" in mods and (set(mods) & (MODS_MATCH - {"cidr"})):
+        raise Unsupported("`cidr` cannot be combined with other matching modifiers")
+    enc = [m for m in mods if m in MODS_ENCODE]
+    if not enc:
+        return values, mods
+    if "re" in mods or "cidr" in mods or "windash" in mods:
+        raise Unsupported("base64/utf16 modifiers cannot be combined with re, cidr or windash")
+    codec = "utf-8"
+    bom = b""
+    for m in enc:
+        if m in ("utf16le", "wide"):
+            codec = "utf-16le"
+        elif m == "utf16be":
+            codec = "utf-16be"
+        elif m == "utf16":
+            codec, bom = "utf-16le", b"\xff\xfe"
+    out = []
+    for v in values:
+        if v is None:
+            raise Unsupported("null cannot be base64 encoded")
+        raw = bom + sigma_literal(str(v)).encode(codec)
+        if "base64offset" in enc:
+            for i in range(3):
+                enc_b = base64.b64encode(b" " * i + raw).decode("ascii")
+                out.append(enc_b[_B64_START[i]:_B64_END[(len(raw) + i) % 3]])
+        elif "base64" in enc:
+            out.append(base64.b64encode(raw).decode("ascii"))
+        else:
+            raise Unsupported("utf16 modifiers only make sense before base64 or base64offset")
+    # base64 is case-sensitive; matching it case-insensitively would widen the
+    # rule to strings that decode to something else.
+    rest = [m for m in mods if m not in MODS_ENCODE]
+    if "cased" not in rest:
+        rest.append("cased")
+    return out, rest
+
+
+def _cidr(value) -> "ipaddress.IPv4Network | ipaddress.IPv6Network":
+    try:
+        return ipaddress.ip_network(str(value), strict=False)
+    except ValueError as e:
+        raise Unsupported(f"cidr value {value!r} is not a network: {e}") from e
+
+
+def cidr_regex(value) -> str:
+    """A CIDR as an anchored regex, for backends with no network primitive.
+    Only octet-aligned IPv4 prefixes (and /32) have a faithful regex; anything
+    else is refused rather than approximated with a wider prefix."""
+    net = _cidr(value)
+    if net.version != 4:
+        raise Unsupported(f"cidr {value!r}: IPv6 has no faithful regex rendering on this backend")
+    if net.prefixlen % 8:
+        raise Unsupported(f"cidr {value!r}: only /8, /16, /24 and /32 can be rendered as a regex "
+                          f"on this backend without widening the match")
+    octets = str(net.network_address).split(".")[: net.prefixlen // 8]
+    tail = "" if net.prefixlen == 32 else r"\."
+    return "^" + r"\.".join(re.escape(o) for o in octets) + tail
+
+
+def windash_regex(core: str) -> str:
+    """Replace each escaped dash in a regex fragment with the windash class."""
+    # re.escape renders `-` as `\-`, so that is the only spelling to replace.
+    return core.replace(r"\-", "[" + "".join(WINDASH) + "]")
+
+
 def to_regex(value, mods: list[str], unfielded: bool = False) -> str:
     """Render one Sigma value as a regex fragment (Wazuh's matching model).
 
@@ -533,8 +633,13 @@ def to_regex(value, mods: list[str], unfielded: bool = False) -> str:
         return r"^$"
     v = str(value)
     if "re" in mods:
-        return v
+        flags = "".join(f for f in MODS_RE_FLAGS if f in mods)
+        return f"(?{flags})" + v if flags else v
+    if "cidr" in mods:
+        return cidr_regex(v)
     core = wildcard_to_regex(v)
+    if "windash" in mods:
+        core = windash_regex(core)
     if "contains" in mods:
         return core
     if "startswith" in mods:
@@ -732,7 +837,11 @@ def validate(rule: dict, strict: bool = True) -> list[str]:
         block = det[sel]
         if not isinstance(block, (dict, list)):
             continue
-        for field, _mods, _values in iter_field_matches(block):
+        for field, mods, values in iter_field_matches(block):
+            try:
+                expand_values(values, mods)
+            except Unsupported as e:
+                errs.append(f"{field or 'keywords'}: {e}")
             for backend in ("wazuh", "splunk"):
                 try:
                     resolve_field(backend, platform, field)
@@ -1076,6 +1185,7 @@ def render_wazuh(rules: list[dict]) -> str:
             for sel in dict.fromkeys(positives):  # dedupe, preserve order
                 for field, mods, values in iter_field_matches(det[sel]):
                     wf = resolve_field("wazuh", platform, field)
+                    values, mods = expand_values(values, mods)
                     parts = [to_regex(v, mods, unfielded=not wf) for v in values]
                     if "all" in mods and len(parts) > 1:
                         # `|all` means every value must be present. Alternation
@@ -1166,8 +1276,28 @@ def _splunk_value(field: str, value, mods: list[str]) -> str:
         return f'NOT {field}=*' if field else "NOT _raw=*"
     v = str(value)
     if "re" in mods:
-        rx = v.replace("\\", "\\\\").replace('"', '\\"')
+        flags = "".join(f for f in MODS_RE_FLAGS if f in mods)
+        rx = (f"(?{flags})" if flags else "") + v
+        rx = rx.replace("\\", "\\\\").replace('"', '\\"')
         return f'match({field or "_raw"}, "{rx}")'
+    if "cidr" in mods:
+        # SPL matches CIDR natively on fields with IP values, both families.
+        return f'{field}="{_cidr(v).with_prefixlen}"'
+    if "windash" in mods:
+        # No character class in an SPL wildcard, so enumerate the variants the
+        # way pySigma does. Bounded, because a value with many dashes would
+        # otherwise explode into thousands of terms.
+        dashes = v.count("-")
+        if dashes > 3:
+            raise Unsupported(f"windash on a value with {dashes} dashes expands to "
+                              f"{len(WINDASH) ** dashes} SPL terms; split the rule")
+        base = [m for m in mods if m != "windash"]
+        parts = v.split("-")
+        alts = []
+        for combo in itertools.product(WINDASH, repeat=dashes):
+            joined = parts[0] + "".join(d + p for d, p in zip(combo, parts[1:]))
+            alts.append(_splunk_value(field, joined, base))
+        return "(" + " OR ".join(alts) + ")"
     # Resolve Sigma escapes, then escape for an SPL quoted string. SPL has no
     # single-character wildcard, so `?` widens to `*` rather than matching a
     # literal question mark that is almost never there.
@@ -1211,6 +1341,7 @@ def render_splunk(rules: list[dict]) -> str:
                 clauses = []
                 for field, mods, values in iter_field_matches(block):
                     sf = resolve_field("splunk", platform, field)
+                    values, mods = expand_values(values, mods)
                     if "all" in mods:
                         clauses.append("(" + " AND ".join(_splunk_value(sf, v, mods) for v in values) + ")")
                     else:
@@ -1266,11 +1397,18 @@ def _kql_value(field: str, value, mods: list[str]) -> str:
         return f'{field} == {value}'
     v = str(value)
     if "re" in mods:
-        return f'{field} matches regex {_kql_str(v)}'
-    if has_wildcard(v):
+        flags = "".join(f for f in MODS_RE_FLAGS if f in mods)
+        return f'{field} matches regex {_kql_str((f"(?{flags})" if flags else "") + v)}'
+    if "cidr" in mods:
+        net = _cidr(v)
+        fn = "ipv4_is_in_range" if net.version == 4 else "ipv6_is_in_range"
+        return f'{fn}({field}, {_kql_str(net.with_prefixlen)})'
+    if has_wildcard(v) or ("windash" in mods and "-" in v):
         # contains/startswith/endswith take literals in KQL, so an embedded
         # wildcard has to become an (anchored as appropriate) regex.
         core = wildcard_to_regex(v)
+        if "windash" in mods:
+            core = windash_regex(core)
         head = "" if ("contains" in mods or "endswith" in mods) else "^"
         tail = "" if ("contains" in mods or "startswith" in mods) else "$"
         flag = "" if "cased" in mods else "(?i)"
@@ -1317,6 +1455,7 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
                 clauses = []
                 for field, mods, values in iter_field_matches(block):
                     kf = resolve_field("sentinel", platform, field)
+                    values, mods = expand_values(values, mods)
                     joiner = " and " if "all" in mods else " or "
                     clauses.append("(" + joiner.join(_kql_value(kf, v, mods) for v in values) + ")")
                 return "(" + " and ".join(clauses) + ")" if clauses else "(true)"

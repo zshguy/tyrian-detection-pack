@@ -318,6 +318,63 @@ class CloudLogsources(unittest.TestCase):
         self.assertIn("<different_field>UserPrincipalName</different_field>", xml)
 
 
+class Modifiers(unittest.TestCase):
+    """A modifier the compiler does not understand must refuse the rule, never
+    be dropped: `|cidr: 10.0.0.0/8` as a literal is a rule that never fires."""
+
+    def _r(self, sel):
+        return rule(detection={"selection": sel, "condition": "selection"})
+
+    def _all(self, sel):
+        r = self._r(sel)
+        return (sc.render_wazuh([r]), sc.render_splunk([r]), sc.render_sentinel([r])[0][0][1])
+
+    def test_unknown_modifier_is_refused_everywhere(self):
+        for sel in ({"X|fieldref": "Y"}, {"X|exists": True}, {"X|gt": 5}, {"X|contains|bogus": "a"}):
+            for render in (sc.render_wazuh, sc.render_splunk, sc.render_sentinel):
+                with self.assertRaises(sc.Unsupported, msg=f"{render.__name__} {sel}"):
+                    render([self._r(sel)])
+            self.assertTrue(any("modifier" in e for e in sc.validate(self._r(sel))))
+
+    def test_windash(self):
+        xml, spl, kql = self._all({"CommandLine|windash|contains": " -enc"})
+        self.assertIn(r"\ [-/–—―]enc", xml)
+        self.assertIn('CommandLine="* /enc*"', spl)
+        self.assertIn('CommandLine="* -enc*"', spl)
+        self.assertIn(r'matches regex @"(?i)\ [-/–—―]enc"', kql)
+
+    def test_cidr(self):
+        xml, spl, kql = self._all({"DestinationIp|cidr": "192.168.0.0/16"})
+        self.assertIn(r"^192\.168\.", xml)
+        self.assertIn('DestinationIp="192.168.0.0/16"', spl)
+        self.assertIn('ipv4_is_in_range(DestinationIp, @"192.168.0.0/16")', kql)
+
+    def test_cidr_wazuh_refuses_what_a_regex_cannot_say(self):
+        for bad in ("10.0.0.0/12", "fe80::/10"):
+            with self.assertRaises(sc.Unsupported):
+                sc.render_wazuh([self._r({"DestinationIp|cidr": bad})])
+        # ...but the backends with a native primitive still take them.
+        kql = sc.render_sentinel([self._r({"DestinationIp|cidr": "fe80::/10"})])[0][0][1]
+        self.assertIn("ipv6_is_in_range", kql)
+
+    def test_base64offset_matches_pysigma(self):
+        vals, mods = sc.expand_values(["/bin/bash"], ["base64offset", "contains"])
+        self.assertEqual(vals, ["L2Jpbi9iYXNo", "9iaW4vYmFza", "vYmluL2Jhc2"])
+        self.assertIn("cased", mods)          # base64 is case-sensitive
+        xml = sc.render_wazuh([self._r({"CommandLine|base64offset|contains": "/bin/bash"})])
+        self.assertNotIn("(?i)", xml)
+
+    def test_utf16le_base64offset(self):
+        vals, _ = sc.expand_values(["Invoke"], ["utf16le", "base64offset", "contains"])
+        self.assertEqual(vals[0], "SQBuAHYAbwBrAGUA")
+
+    def test_re_flags(self):
+        xml, spl, kql = self._all({"Image|re|i": r"evil\.exe$"})
+        self.assertIn(r"(?i)evil\.exe$", xml)
+        self.assertIn(r'match(Image, "(?i)evil\\.exe$")', spl)
+        self.assertIn(r'matches regex @"(?i)evil\.exe$"', kql)
+
+
 class BundledCorpus(unittest.TestCase):
     def test_every_shipped_rule_meets_the_house_standard(self):
         problems = {r["_path"]: sc.validate(r) for r in sc.load_rules()}

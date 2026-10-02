@@ -18,11 +18,12 @@ detection:
       - '\\powershell.exe'
       - '\\pwsh.exe'
   encoded:
-    CommandLine|contains:
-      - ' -enc'
-      - ' -EncodedCommand'
+    # windash: `-enc`, `/enc` and the unicode dashes PowerShell also accepts.
+    # Matching is case-insensitive, so `-EncodedCommand` is covered by `-e`.
+    CommandLine|windash|contains:
       - ' -e '
       - ' -ec '
+      - ' -en'
   condition: selection and encoded
 validation:
   atomic: T1059.001
