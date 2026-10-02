@@ -1,0 +1,33 @@
+title: Okta MFA Factor Reset or Deactivated
+id: 9f988cc3-2115-425f-b10d-tyrian000086
+status: experimental
+description: >
+  Detects an MFA factor being reset, deactivated or all factors cleared on an
+  Okta user. An attacker with admin access does this to enrol their own
+  device; a help-desk social engineer does it to let the caller in.
+references:
+  - https://attack.mitre.org/techniques/T1556/006/
+author: Tyrian
+date: 2026/10/02
+logsource:
+  product: okta
+  service: okta
+detection:
+  selection:
+    eventType:
+      - 'user.mfa.factor.deactivate'
+      - 'user.mfa.factor.reset_all'
+      - 'user.mfa.factor.update'
+    outcome.result: 'SUCCESS'
+  condition: selection
+validation:
+  atomic: T1556.006
+  fire: |-
+    In the Okta admin console open a lab user, More Actions, Reset Multifactor, Reset All.
+falsepositives:
+  - Help-desk resets after a lost phone; correlate with the ticket queue
+level: medium
+tags:
+  - attack.credential_access
+  - attack.persistence
+  - attack.t1556.006

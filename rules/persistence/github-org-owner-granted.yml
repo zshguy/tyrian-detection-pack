@@ -1,0 +1,33 @@
+title: GitHub Organization Owner Role Granted
+id: 0e28a24d-fa42-4fa6-bdec-tyrian000088
+status: experimental
+description: >
+  Detects a member being promoted to organization owner, or an outside
+  collaborator being invited with admin rights. Owner is the GitHub
+  equivalent of domain admin: it can change every repo, secret and billing
+  setting in the org.
+references:
+  - https://attack.mitre.org/techniques/T1098/003/
+author: Tyrian
+date: 2026/10/02
+logsource:
+  product: github
+  service: audit
+detection:
+  selection:
+    action:
+      - 'org.update_member'
+      - 'org.add_member'
+    permission: 'admin'
+  condition: selection
+validation:
+  atomic: T1098.003
+  fire: |-
+    gh api -X PUT orgs/<lab-org>/memberships/<lab-user> -f role=admin
+falsepositives:
+  - Planned ownership changes; there should be very few
+level: high
+tags:
+  - attack.persistence
+  - attack.privilege_escalation
+  - attack.t1098.003

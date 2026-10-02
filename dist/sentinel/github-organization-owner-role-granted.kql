@@ -1,0 +1,8 @@
+// GitHub Organization Owner Role Granted
+// Detects a member being promoted to organization owner, or an outside collaborator being invited with admin rights. Owner is the GitHub equivalent of domain admin: it can change every repo, secret and billing setting in the org.
+// techniques: T1098.003   severity: high   status: experimental
+// validate: Atomic Red Team T1098.003
+//   gh api -X PUT orgs/<lab-org>/memberships/<lab-user> -f role=admin
+// source: rules/persistence/github-org-owner-granted.yml  (GENERATED, do not edit by hand)
+GitHubAuditLogPolling_CL
+| where ((action_s =~ @"org.update_member" or action_s =~ @"org.add_member") and (permission_s =~ @"admin"))

@@ -375,6 +375,51 @@ class Modifiers(unittest.TestCase):
         self.assertIn(r'matches regex @"(?i)evil\.exe$"', kql)
 
 
+
+class MoreLogsources(unittest.TestCase):
+    def _rule(self, product, service, sel, cond="selection"):
+        return rule(logsource={"product": product, "service": service},
+                    detection={"selection": sel, "condition": cond})
+
+    def test_okta_github_gcp_land_in_their_own_namespaces(self):
+        cases = [
+            ("okta", "okta", {"eventType": "user.mfa.factor.reset_all"},
+             "eventType", 'sourcetype="OktaIM2:log"', "OktaSSO"),
+            ("github", "audit", {"action": "org.update_member"},
+             'name="github.action"', 'sourcetype="github:audit"', 'action_s =~'),
+            ("gcp", "gcp.audit", {"gcp.audit.method_name": "x"},
+             'name="gcp.protoPayload.methodName"', "data.protoPayload.methodName", "MethodName =~"),
+        ]
+        for product, service, sel, wz, spl, kql in cases:
+            r = self._rule(product, service, sel)
+            xml = sc.render_wazuh([r])
+            self.assertIn(wz, xml, product)
+            self.assertNotIn("win.eventdata", xml, product)
+            self.assertIn(spl, sc.render_splunk([r]), product)
+            self.assertIn(kql, sc.render_sentinel([r])[0][0][1], product)
+
+    def test_okta_has_no_if_group_because_json_is_a_decoder_not_a_group(self):
+        xml = sc.render_wazuh([self._rule("okta", "okta", {"eventType": "x"})])
+        self.assertNotIn("<if_group>", xml)
+
+    def test_macos_process_and_file_tables(self):
+        proc = rule(logsource={"product": "macos", "category": "process_creation"},
+                    detection={"selection": {"Image|endswith": "/osascript"}, "condition": "selection"})
+        self.assertIn('name="osquery.columns.path"', sc.render_wazuh([proc]))
+        self.assertIn("DeviceProcessEvents", sc.render_sentinel([proc])[0][0][1])
+        fe = rule(logsource={"product": "macos", "category": "file_event"},
+                  detection={"selection": {"TargetFilename|endswith": ".plist"}, "condition": "selection"})
+        self.assertIn('name="file_events"', sc.render_splunk([fe]))
+        self.assertIn("DeviceFileEvents", sc.render_sentinel([fe])[0][0][1])
+
+    def test_macos_parent_image_refused_on_osquery_but_fine_on_sentinel(self):
+        r = rule(logsource={"product": "macos", "category": "process_creation"},
+                 detection={"selection": {"ParentImage|endswith": "/bash"}, "condition": "selection"})
+        with self.assertRaises(sc.Unsupported):
+            sc.render_wazuh([r])
+        self.assertIn("InitiatingProcessFolderPath", sc.render_sentinel([r])[0][0][1])
+
+
 class BundledCorpus(unittest.TestCase):
     def test_every_shipped_rule_meets_the_house_standard(self):
         problems = {r["_path"]: sc.validate(r) for r in sc.load_rules()}

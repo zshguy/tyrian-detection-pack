@@ -1,0 +1,36 @@
+title: macOS LaunchAgent or LaunchDaemon Created
+id: 397acd7b-6139-4df5-af03-tyrian000089
+status: experimental
+description: >
+  Detects a property list being written into a LaunchAgents or LaunchDaemons
+  directory. launchd loads anything there at login or boot, which makes it
+  the most common macOS persistence location for both malware and PUAs.
+  Needs osquery file_events watching these paths (Wazuh, Splunk) or Defender
+  for Endpoint (Sentinel).
+references:
+  - https://attack.mitre.org/techniques/T1543/001/
+author: Tyrian
+date: 2026/10/02
+logsource:
+  product: macos
+  category: file_event
+detection:
+  selection:
+    TargetFilename|contains:
+      - '/Library/LaunchAgents/'
+      - '/Library/LaunchDaemons/'
+    TargetFilename|endswith: '.plist'
+  filter_installers:
+    TargetFilename|startswith:
+      - '/System/Library/'
+  condition: selection and not filter_installers
+validation:
+  atomic: T1543.001
+  fire: |-
+    cp /System/Library/LaunchAgents/com.apple.screensharing.agent.plist ~/Library/LaunchAgents/com.test.agent.plist
+falsepositives:
+  - Software installers (Chrome, Zoom, Dropbox) register agents; allowlist by path
+level: medium
+tags:
+  - attack.persistence
+  - attack.t1543.001

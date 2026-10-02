@@ -1,0 +1,34 @@
+title: macOS osascript Requests Administrator Privileges
+id: 11e58522-97db-426b-b3b7-tyrian000090
+status: experimental
+description: >
+  Detects AppleScript run from the command line that asks for administrator
+  privileges, the classic fake password prompt used by macOS stealers and
+  installers of unsigned software to get root without an exploit.
+references:
+  - https://attack.mitre.org/techniques/T1059/002/
+  - https://attack.mitre.org/techniques/T1548/
+author: Tyrian
+date: 2026/10/02
+logsource:
+  product: macos
+  category: process_creation
+detection:
+  selection:
+    Image|endswith: '/osascript'
+    CommandLine|contains|all:
+      - 'do shell script'
+      - 'with administrator privileges'
+  condition: selection
+validation:
+  atomic: T1059.002
+  fire: |-
+    osascript -e 'do shell script "id" with administrator privileges'
+falsepositives:
+  - Legitimate installers written in AppleScript; rare in fleets
+level: high
+tags:
+  - attack.execution
+  - attack.privilege_escalation
+  - attack.t1059.002
+  - attack.t1548

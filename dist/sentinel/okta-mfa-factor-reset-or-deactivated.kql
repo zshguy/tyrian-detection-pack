@@ -1,0 +1,8 @@
+// Okta MFA Factor Reset or Deactivated
+// Detects an MFA factor being reset, deactivated or all factors cleared on an Okta user. An attacker with admin access does this to enrol their own device; a help-desk social engineer does it to let the caller in.
+// techniques: T1556.006   severity: medium   status: experimental
+// validate: Atomic Red Team T1556.006
+//   In the Okta admin console open a lab user, More Actions, Reset Multifactor, Reset All.
+// source: rules/credential-access/okta-mfa-factor-reset.yml  (GENERATED, do not edit by hand)
+OktaSSO
+| where ((eventType =~ @"user.mfa.factor.deactivate" or eventType =~ @"user.mfa.factor.reset_all" or eventType =~ @"user.mfa.factor.update") and (outcome_result =~ @"SUCCESS"))

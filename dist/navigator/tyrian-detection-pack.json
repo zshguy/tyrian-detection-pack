@@ -6,7 +6,7 @@
     "layer": "4.5"
   },
   "domain": "enterprise-attack",
-  "description": "85 open-source Sigma detections covering 79 techniques, compiled to Wazuh, Splunk and Sentinel. https://github.com/zshguy/tyrian-detection-pack",
+  "description": "90 open-source Sigma detections covering 83 techniques, compiled to Wazuh, Splunk and Sentinel. https://github.com/zshguy/tyrian-detection-pack",
   "filters": {
     "platforms": [
       "Windows",
@@ -332,6 +332,23 @@
       "showSubtechniques": true
     },
     {
+      "techniqueID": "T1059.002",
+      "score": 1,
+      "comment": "macOS osascript Requests Administrator Privileges [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
       "techniqueID": "T1059.004",
       "score": 2,
       "comment": "Linux Remote Payload Piped Directly Into a Shell [experimental, medium]\nLinux Reverse Shell Execution [experimental, critical]",
@@ -520,13 +537,13 @@
     },
     {
       "techniqueID": "T1098.001",
-      "score": 1,
-      "comment": "Entra ID Credentials Added to an Application or Service Principal [experimental, medium]",
+      "score": 2,
+      "comment": "Entra ID Credentials Added to an Application or Service Principal [experimental, medium]\nGCP Service Account Key Created [experimental, medium]",
       "enabled": true,
       "metadata": [
         {
           "name": "rules",
-          "value": "1"
+          "value": "2"
         },
         {
           "name": "validated",
@@ -554,13 +571,13 @@
     },
     {
       "techniqueID": "T1098.003",
-      "score": 2,
-      "comment": "AWS AdministratorAccess Policy Attached [experimental, high]\nEntra ID Privileged Directory Role Assigned [experimental, high]",
+      "score": 3,
+      "comment": "AWS AdministratorAccess Policy Attached [experimental, high]\nEntra ID Privileged Directory Role Assigned [experimental, high]\nGitHub Organization Owner Role Granted [experimental, high]",
       "enabled": true,
       "metadata": [
         {
           "name": "rules",
-          "value": "2"
+          "value": "3"
         },
         {
           "name": "validated",
@@ -944,6 +961,23 @@
       "showSubtechniques": true
     },
     {
+      "techniqueID": "T1543.001",
+      "score": 1,
+      "comment": "macOS LaunchAgent or LaunchDaemon Created [experimental, medium]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
       "techniqueID": "T1543.002",
       "score": 1,
       "comment": "Linux systemd Unit Created or Modified [experimental, high]",
@@ -1029,6 +1063,23 @@
       "showSubtechniques": true
     },
     {
+      "techniqueID": "T1548",
+      "score": 1,
+      "comment": "macOS osascript Requests Administrator Privileges [experimental, high]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
       "techniqueID": "T1548.003",
       "score": 1,
       "comment": "Linux sudoers Policy Modified [experimental, high]",
@@ -1100,6 +1151,23 @@
       "techniqueID": "T1556",
       "score": 1,
       "comment": "Shadow Credentials Added via msDS-KeyCredentialLink [experimental, critical]",
+      "enabled": true,
+      "metadata": [
+        {
+          "name": "rules",
+          "value": "1"
+        },
+        {
+          "name": "validated",
+          "value": "0"
+        }
+      ],
+      "showSubtechniques": true
+    },
+    {
+      "techniqueID": "T1556.006",
+      "score": 1,
+      "comment": "Okta MFA Factor Reset or Deactivated [experimental, medium]",
       "enabled": true,
       "metadata": [
         {

@@ -1,0 +1,8 @@
+// macOS LaunchAgent or LaunchDaemon Created
+// Detects a property list being written into a LaunchAgents or LaunchDaemons directory. launchd loads anything there at login or boot, which makes it the most common macOS persistence location for both malware and PUAs. Needs osquery file_events watching these paths (Wazuh, Splunk) or Defender for Endpoint (Sentinel).
+// techniques: T1543.001   severity: medium   status: experimental
+// validate: Atomic Red Team T1543.001
+//   cp /System/Library/LaunchAgents/com.apple.screensharing.agent.plist ~/Library/LaunchAgents/com.test.agent.plist
+// source: rules/persistence/macos-launch-agent-created.yml  (GENERATED, do not edit by hand)
+DeviceFileEvents
+| where (((FolderPath contains @"/Library/LaunchAgents/" or FolderPath contains @"/Library/LaunchDaemons/") and (FolderPath endswith @".plist")) and not ((FolderPath startswith @"/System/Library/")))

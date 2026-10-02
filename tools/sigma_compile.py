@@ -203,7 +203,45 @@ SPLUNK_LINUX_FIELDS = {
 # requestParameters.* alone is open-ended). Falling through to the Windows
 # derivation instead would turn `eventName` into `win.eventdata.eventName`: a
 # rule that deploys cleanly and can never fire.
-CLOUD_PRODUCTS = ("aws", "azure", "m365")
+CLOUD_PRODUCTS = ("aws", "azure", "m365", "okta", "gcp", "github", "macos")
+
+# Sigma's gcp.audit taxonomy -> the audit log's own protoPayload paths.
+GCP_AUDIT_FIELDS = {
+    "gcp.audit.method_name": "protoPayload.methodName",
+    "gcp.audit.service_name": "protoPayload.serviceName",
+    "gcp.audit.principal_email": "protoPayload.authenticationInfo.principalEmail",
+    "gcp.audit.resource_name": "protoPayload.resourceName",
+    "gcp.audit.type": "protoPayload.@type",
+}
+SENTINEL_GCP_FIELDS = {
+    "protoPayload.methodName": "MethodName",
+    "protoPayload.serviceName": "ServiceName",
+    "protoPayload.authenticationInfo.principalEmail": "PrincipalEmail",
+    "protoPayload.resourceName": "ResourceName",
+}
+
+# macOS has no process-creation feed in Wazuh or Splunk out of the box. The
+# portable answer is osquery's process_events / file_events tables, which both
+# ingest as JSON, so that is what the Wazuh and Splunk maps target. osquery's
+# process_events row has no parent path, so ParentImage is refused on those
+# backends rather than mapped to the parent pid. Sentinel gets Defender for
+# Endpoint's advanced-hunting tables, which do carry the parent.
+MACOS_OSQUERY_FIELDS = {
+    "Image": "columns.path",
+    "CommandLine": "columns.cmdline",
+    "TargetFilename": "columns.target_path",
+    "User": "columns.uid",
+    "ProcessId": "columns.pid",
+}
+MACOS_SENTINEL_FIELDS = {
+    "Image": "FolderPath",
+    "CommandLine": "ProcessCommandLine",
+    "ParentImage": "InitiatingProcessFolderPath",
+    "ParentCommandLine": "InitiatingProcessCommandLine",
+    "User": "AccountName",
+    "ProcessId": "ProcessId",
+    "TargetFilename": "FolderPath",
+}
 
 # Sentinel's AWSCloudTrail table flattens userIdentity.* into columns and keeps
 # the request/response bodies as dynamic JSON.
@@ -267,6 +305,54 @@ def _cloud_field(backend: str, platform: str, field: str) -> str:
         if backend == "splunk":
             return SPLUNK_M365_FIELDS.get(field, field)
         return field  # OfficeActivity uses the management API names.
+    if platform == "okta":
+        # Okta System Log JSON. Wazuh has no Okta module, so this assumes the
+        # raw JSON is collected through a <localfile> and hits the JSON decoder,
+        # where a rule references the path as-is. Splunk's Okta add-on keeps
+        # the paths too, with arrays spelled `target{}`. Sentinel's OktaSSO
+        # (the current connector) flattens dots to underscores.
+        if backend == "splunk":
+            return field.replace("target.", "target{}.")
+        if backend == "sentinel":
+            if field.startswith("target."):
+                return "tostring(target)"
+            return field.replace(".", "_")
+        return field
+    if platform == "gcp":
+        path = GCP_AUDIT_FIELDS.get(field, field)
+        if not path.startswith("protoPayload.") and not path.startswith("resource."):
+            raise Unsupported(f"field {field!r} has no gcp mapping; this compiler covers "
+                              f"Cloud Audit Logs (service gcp.audit), fields "
+                              f"{sorted(GCP_AUDIT_FIELDS)} or a raw protoPayload.* path")
+        if backend == "wazuh":
+            return f"gcp.{path}"            # Wazuh gcp-pubsub module
+        if backend == "splunk":
+            return f"data.{path}"           # Splunk Add-on for Google Cloud Platform
+        if path in SENTINEL_GCP_FIELDS:
+            return SENTINEL_GCP_FIELDS[path]
+        return f"tostring(parse_json(ProtoPayload).{path.split('.', 1)[1]})"
+    if platform == "github":
+        if backend == "wazuh":
+            return f"github.{field}"        # Wazuh github module
+        if backend == "sentinel":
+            return f"{field}_s"             # GitHubAuditLogPolling_CL
+        return field                        # Splunk github:audit keeps the names
+    if platform == "macos":
+        if backend == "sentinel":
+            if field in MACOS_SENTINEL_FIELDS:
+                return MACOS_SENTINEL_FIELDS[field]
+        elif field in MACOS_OSQUERY_FIELDS:
+            col = MACOS_OSQUERY_FIELDS[field]
+            return f"osquery.{col}" if backend == "wazuh" else col
+        elif field in ("ParentImage", "ParentCommandLine"):
+            raise Unsupported(
+                f"field {field!r}: osquery's process_events row has no parent path, only "
+                f"the parent pid, so a macOS rule keyed on the parent cannot compile for "
+                f"{backend} without a join. It compiles for Sentinel (DeviceProcessEvents)."
+            )
+        known = MACOS_SENTINEL_FIELDS if backend == "sentinel" else MACOS_OSQUERY_FIELDS
+        raise Unsupported(f"field {field!r} has no {backend} mapping for macos; "
+                          f"use one of {sorted(known)}")
     # azure (Entra ID sign-in and audit logs)
     if backend == "splunk":
         return SPLUNK_AZURE_FIELDS.get(field, "properties." + field[:1].lower() + field[1:])
@@ -293,6 +379,10 @@ WAZUH_GROUPS = {
     ("aws", None): "amazon,aws,",
     ("azure", None): "azure,",
     ("m365", None): "office365,",
+    ("okta", None): "okta,",
+    ("gcp", None): "gcp,",
+    ("github", None): "github,",
+    ("macos", None): "osquery,",
 }
 WAZUH_IF_GROUP = {
     ("windows", "sysmon"): "sysmon_event1",
@@ -305,6 +395,13 @@ WAZUH_IF_GROUP = {
     ("aws", None): "amazon",
     ("azure", None): "azure",
     ("m365", None): "office365",
+    # Okta JSON arrives through the generic JSON decoder, which has no rule
+    # group to key on. `json` is a decoder name, and <if_group>json</if_group>
+    # would match nothing. The field tests scope the rule instead.
+    ("okta", None): None,
+    ("gcp", None): "gcp",
+    ("github", None): "github",
+    ("macos", None): "osquery",
 }
 SENTINEL_TABLES = {
     ("windows", "security"): "SecurityEvent",
@@ -317,6 +414,11 @@ SENTINEL_TABLES = {
     ("azure", "auditlogs"): "AuditLogs",
     ("azure", "activitylogs"): "AzureActivity",
     ("m365", None): "OfficeActivity",
+    ("okta", None): "OktaSSO",
+    ("gcp", None): "GCPAuditLogs",
+    ("github", None): "GitHubAuditLogPolling_CL",
+    ("macos", None): "DeviceProcessEvents",
+    ("macos", "file_event"): "DeviceFileEvents",
 }
 SPLUNK_SOURCETYPES = {
     ("windows", "security"): 'source="WinEventLog:Security"',
@@ -328,7 +430,24 @@ SPLUNK_SOURCETYPES = {
     ("aws", None): 'sourcetype="aws:cloudtrail"',
     ("azure", None): 'sourcetype="azure:monitor:aad"',
     ("m365", None): 'sourcetype="o365:management:activity"',
+    ("okta", None): 'sourcetype="OktaIM2:log"',
+    ("gcp", None): 'sourcetype="google:gcp:pubsub:message"',
+    ("github", None): 'sourcetype="github:audit"',
+    ("macos", None): 'sourcetype="osquery:results" name="process_events"',
+    ("macos", "file_event"): 'sourcetype="osquery:results" name="file_events"',
 }
+
+
+def lookup_logsource(table: dict, rule: dict, default=None):
+    """(product, service) first, then (product, category), then the product
+    alone. Categories matter where one product spans several tables, such as
+    macOS process vs file events."""
+    ls = rule.get("logsource", {}) or {}
+    product = ls.get("product")
+    for sub in (ls.get("service"), ls.get("category")):
+        if sub is not None and (product, sub) in table:
+            return table[(product, sub)]
+    return table.get((product, None), default)
 
 LEVEL_TO_WAZUH = {"informational": 3, "low": 5, "medium": 8, "high": 12, "critical": 14}
 
@@ -1145,15 +1264,14 @@ def render_wazuh(rules: list[dict]) -> str:
                 f"(limit {MAX_WAZUH_VARIANTS}); split the rule instead"
             )
 
-        key = logsource_key(rule)
         # An unmapped logsource used to fall back to the Windows group, which
         # quietly scoped a Django or macOS rule to Windows events and guaranteed
         # it would never fire. Emitting no <if_group> is the honest translation:
         # unscoped, evaluated against everything, and flagged for tuning.
-        product_key = (key[0], None)
-        known_logsource = key in WAZUH_GROUPS or product_key in WAZUH_GROUPS
-        group = WAZUH_GROUPS.get(key) or WAZUH_GROUPS.get(product_key, "sigma,")
-        if_group = WAZUH_IF_GROUP.get(key) or WAZUH_IF_GROUP.get(product_key)
+        group = lookup_logsource(WAZUH_GROUPS, rule)
+        known_logsource = group is not None
+        group = group or "sigma,"
+        if_group = lookup_logsource(WAZUH_IF_GROUP, rule)
         level = LEVEL_TO_WAZUH[rule["level"]]
         techniques = [t.split(".", 1)[1].upper() for t in rule["tags"] if str(t).startswith("attack.t")]
 
@@ -1352,8 +1470,7 @@ def render_splunk(rules: list[dict]) -> str:
             op = " AND " if kind == "and" else " OR "
             return "(" + op.join(render(c) for c in node[1:]) + ")"
 
-        key = logsource_key(rule)
-        src = SPLUNK_SOURCETYPES.get(key) or SPLUNK_SOURCETYPES.get((key[0], None), "")
+        src = lookup_logsource(SPLUNK_SOURCETYPES, rule, "")
         spl = f"index=* {src} {render(tree)}".strip()
         agg = rule_aggregation(rule)
         if agg:
@@ -1464,8 +1581,7 @@ def render_sentinel(rules: list[dict]) -> tuple[list[tuple[str, str]], list[tupl
             op = " and " if kind == "and" else " or "
             return "(" + op.join(render(c) for c in node[1:]) + ")"
 
-        key = logsource_key(rule)
-        table = SENTINEL_TABLES.get(key) or SENTINEL_TABLES.get((key[0], None), "SecurityEvent")
+        table = lookup_logsource(SENTINEL_TABLES, rule, "SecurityEvent")
         techs = ",".join(t.split(".", 1)[1].upper() for t in rule["tags"] if str(t).startswith("attack.t"))
         body = [
             f"// {rule['title']}",

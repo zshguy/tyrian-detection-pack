@@ -44,11 +44,11 @@ shadow-copy deletion rule spent months requiring `Image` to be `vssadmin.exe`
 *and* `wmic.exe` at the same time. It could never have fired, and nothing told us.
 
 The fix is to rewrite the condition into disjunctive normal form and emit one
-sibling rule per branch, which is why 3,144 Sigma rules come out as 3,633 Wazuh
+sibling rule per branch, which is why 3,144 Sigma rules come out as 3,609 Wazuh
 rules. Everything else in this repo follows from taking that kind of failure
 seriously.
 
-## Five ways a detection looks fine and never fires
+## Six ways a detection looks fine and never fires
 
 We audited our own compiler after shipping it. Every one of these was live in
 `dist/` at some point, every one deployed cleanly, and every one now has a test.
@@ -60,8 +60,9 @@ We audited our own compiler after shipping it. Every one of these was live in
 | 3 | `CommandLine\|contains: '-EncodedCommand'` | case-sensitive PCRE | Sigma matching is case-insensitive; `-encodedcommand` walked past |
 | 4 | `CommandLine has_any (" -enc", ...)` (Sentinel) | whole-term match | KQL `has_any` matches terms, not substrings; `-EncodedCommand` isn't the term `-enc` |
 | 5 | `QueryName\|re: '[A-Za-z0-9]{40,}\\.'` | regex requiring a literal backslash | the rule file, not the compiler, escaped the dot twice |
+| 6 | `DestinationIp\|cidr: 10.0.0.0/8` | `^10\.0\.0\.0/8$` as a literal | the modifier was silently dropped; no IP is spelled `10.0.0.0/8` |
 
-If you run any Sigma-to-anything converter, go check your output for #2 and #3.
+If you run any Sigma-to-anything converter, go check your output for #2, #3 and #6.
 They are the kind of bug a green CI run does not catch, because the file is
 well-formed and the test suite is checking the shape of the XML, not whether a
 real event would match it.
@@ -100,9 +101,9 @@ it shipped with. So, against all of SigmaHQ:
 
 | Backend | Translated | Declined | Rate | Rules emitted |
 |---|---:|---:|---:|---:|
-| Wazuh | 3,028 | 116 | **96%** | 3,633 |
-| Splunk | 3,027 | 117 | **96%** | 3,027 |
-| Sentinel | 2,876 | 268 | **91%** | 2,876 |
+| Wazuh | 3,007 | 137 | **96%** | 3,609 |
+| Splunk | 3,001 | 143 | **95%** | 3,001 |
+| Sentinel | 2,862 | 282 | **91%** | 2,862 |
 
 Run it yourself, it takes about a minute:
 
@@ -116,7 +117,7 @@ table to the job summary, because a number in a README is exactly the kind of
 claim that rots quietly once upstream starts using constructs the compiler does
 not implement.
 
-The 116 refusals are the point, not an embarrassment. 110 of them are Sigma
+The 137 refusals are the point, not an embarrassment. 110 of them are Sigma
 rules that use `CommandLine` with `logsource.product: linux`, which is a
 process-creation agent field. auditd has no command line at all (argv arrives
 split across EXECVE `a0..aN`), so a converter that mapped it anyway would emit a
@@ -152,17 +153,17 @@ on the command line for tracking translation drift over time.
 
 ## The corpus
 
-85 rules, 79 ATT&CK techniques, 12 tactics, across Windows, Linux, AWS,
-Entra ID and Microsoft 365. Counts are generated, never hand-maintained. Full
+90 rules, 83 ATT&CK techniques, 12 tactics, across Windows, Linux, macOS, AWS,
+GCP, Entra ID, Microsoft 365, Okta and GitHub. Counts are generated, never hand-maintained. Full
 per-rule table in [COVERAGE.md](COVERAGE.md).
 
 | Tactic | Rules | Examples |
 |---|---:|---|
-| Credential Access | 18 | Kerberoasting, AS-REP roasting, DCSync, NTDS.dit, LSASS via `comsvcs.dll`, ADCS ESC1, shadow credentials, golden/silver ticket tooling, browser password stores, Entra password spray, MFA fatigue |
-| Persistence | 16 | Run keys, services, WMI subscriptions, AdminSDHolder, cron, systemd, `ld.so.preload`, AWS AdministratorAccess attached, Entra admin role assigned, app secrets added, mailbox FullAccess |
+| Credential Access | 19 | Kerberoasting, AS-REP roasting, DCSync, NTDS.dit, LSASS via `comsvcs.dll`, ADCS ESC1, shadow credentials, golden/silver ticket tooling, browser password stores, Entra password spray, MFA fatigue, Okta MFA factor reset |
+| Persistence | 19 | Run keys, services, WMI subscriptions, AdminSDHolder, cron, systemd, `ld.so.preload`, AWS AdministratorAccess attached, Entra admin role assigned, app secrets added, mailbox FullAccess, GCP service-account key, GitHub org owner, macOS LaunchAgent |
 | Defense Evasion | 12 | Event log cleared, Defender disabled, AMSI bypass, process hollowing, DCShadow, auditd tampering, CloudTrail / GuardDuty off, M365 audit log off |
 | Lateral Movement | 8 | PsExec, pass-the-hash, WMI, WinRM, DCOM, admin-share writes, RDP enabled via registry, `tscon` session hijack |
-| Execution | 7 | Encoded PowerShell, download cradles, `mshta`, Squiblydoo, `certutil`, Linux reverse shells, curl-pipe-bash |
+| Execution | 8 | Encoded PowerShell, download cradles, `mshta`, Squiblydoo, `certutil`, Linux reverse shells, curl-pipe-bash, `osascript` admin prompt |
 | Privilege Escalation | 7 | RBCD, unconstrained delegation, GPO modification, BYOVD, sudoers, container escape, logon type 9 |
 | Initial Access | 4 | Office spawning a script host, web server spawning a shell, script run from a zip or Downloads, AWS root console login |
 | Impact | 3 | Shadow-copy deletion, backup destruction, mass service stop |
@@ -220,10 +221,13 @@ a rule that deploys and never fires. Wazuh additionally refuses IPv6 and
 non-octet-aligned IPv4 CIDRs rather than widening them to a prefix regex.
 
 **Log sources:** Windows (Security, Sysmon, System, PowerShell), Linux auditd,
-AWS CloudTrail, Entra ID sign-in and audit logs, Microsoft 365 / Exchange. Each
-one maps to the namespace its backend's connector actually produces
-(`win.eventdata.*`, `audit.*`, `aws.*`, `office365.*` in Wazuh; `AWSCloudTrail`,
-`SigninLogs`, `OfficeActivity` in Sentinel). An unknown log source is emitted
+macOS (osquery `process_events` / `file_events` for Wazuh and Splunk, Defender
+`DeviceProcessEvents` / `DeviceFileEvents` for Sentinel), AWS CloudTrail, GCP
+Cloud Audit Logs, Entra ID sign-in and audit logs, Microsoft 365 / Exchange,
+Okta System Log, GitHub audit log. Each one maps to the namespace its backend's
+connector actually produces (`win.eventdata.*`, `audit.*`, `aws.*`, `gcp.*`,
+`github.*`, `osquery.*`, `office365.*` in Wazuh; `AWSCloudTrail`, `GCPAuditLogs`,
+`SigninLogs`, `OktaSSO`, `OfficeActivity` in Sentinel). An unknown log source is emitted
 unscoped with a `TUNE:` note, never quietly scoped to Windows.
 
 **Fields are resolved per platform, strictly.** Windows fields fall back to a
@@ -360,13 +364,14 @@ CI compiles it to every backend, and the coverage table updates itself.
 
 The most useful things you can do right now, in order:
 
-1. **Fire an `experimental` rule on a range and tell us what happened.** 54 of
-   the 85 have never seen a real event. Confirming one (or finding it broken)
+1. **Fire an `experimental` rule on a range and tell us what happened.** 59 of
+   the 90 have never seen a real event. Confirming one (or finding it broken)
    is worth more than writing three new ones. Use the
    [missed detection](.github/ISSUE_TEMPLATE/missed-detection.yml) or
    [false positive](.github/ISSUE_TEMPLATE/false-positive.yml) template.
-2. **Add a log source.** macOS, Okta, Google Cloud and GitHub audit logs are
-   the gaps. The `good first issue` label marks the ones with a worked plan.
+2. **Check a field name against a real event.** The Okta, GCP, GitHub and
+   macOS maps were written from connector documentation, not from decoded
+   alerts. One pasted alert confirms or corrects an entire log source.
 3. **Implement `fieldref` or `near`.** The last Sigma constructs the compiler
    refuses. Both need a design, not just code; open an issue first.
 

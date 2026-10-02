@@ -1,0 +1,8 @@
+// macOS osascript Requests Administrator Privileges
+// Detects AppleScript run from the command line that asks for administrator privileges, the classic fake password prompt used by macOS stealers and installers of unsigned software to get root without an exploit.
+// techniques: T1059.002,T1548   severity: high   status: experimental
+// validate: Atomic Red Team T1059.002
+//   osascript -e 'do shell script "id" with administrator privileges'
+// source: rules/execution/macos-osascript-admin-prompt.yml  (GENERATED, do not edit by hand)
+DeviceProcessEvents
+| where ((FolderPath endswith @"/osascript") and (ProcessCommandLine contains @"do shell script" and ProcessCommandLine contains @"with administrator privileges"))
