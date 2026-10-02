@@ -1,11 +1,33 @@
+Metadata-Version: 2.4
+Name: sigma-compile
+Version: 1.1.0
+Summary: Compile Sigma detection rules to Wazuh, Splunk and Sentinel. Refuses what it cannot translate faithfully.
+License: MIT
+Project-URL: Homepage, https://github.com/zshguy/tyrian-detection-pack
+Project-URL: SigmaHQ ruleset, https://github.com/zshguy/tyrian-detection-pack/releases/tag/sigmahq-latest
+Keywords: sigma,wazuh,splunk,sentinel,detection-engineering,siem,mitre-attack
+Classifier: Topic :: Security
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pyyaml>=6
+Dynamic: license-file
+
 # Tyrian Detection Pack
 
-**3,600 SigmaHQ detections on your Wazuh manager in one `curl`. Plus the compiler that made them, which refuses to emit a rule that can never fire.**
+**Sigma detections, compiled to Wazuh properly.**
 
 [![validate + compile](https://github.com/zshguy/tyrian-detection-pack/actions/workflows/ci.yml/badge.svg)](https://github.com/zshguy/tyrian-detection-pack/actions/workflows/ci.yml)
 [![SigmaHQ ruleset](https://github.com/zshguy/tyrian-detection-pack/actions/workflows/sigmahq-release.yml/badge.svg)](https://github.com/zshguy/tyrian-detection-pack/releases/tag/sigmahq-latest)
 [![SigmaHQ coverage](https://img.shields.io/badge/SigmaHQ-96%25%20compiles%20to%20Wazuh-6d28d9)](#does-it-work-on-rules-that-are-not-ours)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
+## Get 3,600 SigmaHQ detections onto your Wazuh manager
+
+Wazuh has no Sigma backend, so getting community detections into it normally
+means building a toolchain first. Here is the corpus already converted:
 
 ```bash
 curl -LO https://github.com/zshguy/tyrian-detection-pack/releases/download/sigmahq-latest/sigmahq-wazuh-rules.xml
@@ -13,85 +35,67 @@ sudo cp sigmahq-wazuh-rules.xml /var/ossec/etc/rules/local_rules.xml
 sudo /var/ossec/bin/wazuh-control restart
 ```
 
-That is the whole SigmaHQ corpus, converted, regenerated every Monday, with a
-report of every rule that was refused and why. Splunk `.conf` and Sentinel KQL
-are in [the same release](https://github.com/zshguy/tyrian-detection-pack/releases/tag/sigmahq-latest).
+[**Download the ruleset**](https://github.com/zshguy/tyrian-detection-pack/releases/tag/sigmahq-latest)
+(Splunk `.conf` and Sentinel KQL are in the same release). Regenerated weekly
+from SigmaHQ `master`, with a translation report listing every rule that was
+refused and why.
 
-Rule IDs start at 100100. Check for collisions with your local rules, read the
-report, and expect to tune. The rules remain the work of their SigmaHQ authors
-under the [Detection Rule License 1.1](https://github.com/SigmaHQ/Detection-Rule-License);
-each compiled rule carries its author and a link back.
-
----
-
-## Why this exists
-
-Wazuh has no Sigma backend. pySigma, which maintains the backends everybody
-else uses, [does not have one](https://github.com/SigmaHQ/pySigma/discussions/257).
-So Wazuh operators hand-translate Sigma into `<field>` regex XML, and hand
-translation is where detections die quietly: the rule loads, the manager is
-healthy, and it can never match.
-
-Every previous converter hit the same wall, and
-[sigma_to_wazuh](https://github.com/theflakes/sigma_to_wazuh) says so in its own README:
-
-> Some logic conversion is still broken due to the complexities of converting
-> Sigma OR logic into Wazuh OR logic unfortunately.
-
-A Wazuh rule is **one flat conjunction**. It cannot hold an `or`. Collapse a
-disjunction into one rule and it silently becomes an `and`. Our own
-shadow-copy deletion rule spent months requiring `Image` to be `vssadmin.exe`
-*and* `wmic.exe` at the same time. It could never have fired, and nothing told us.
-
-The fix is to rewrite the condition into disjunctive normal form and emit one
-sibling rule per branch, which is why 3,144 Sigma rules come out as 3,633 Wazuh
-rules. Everything else in this repo follows from taking that kind of failure
-seriously.
-
-## Five ways a detection looks fine and never fires
-
-We audited our own compiler after shipping it. Every one of these was live in
-`dist/` at some point, every one deployed cleanly, and every one now has a test.
-
-| # | What the rule said | What actually got deployed | Why it never fired |
-|---|---|---|---|
-| 1 | `vssadmin.exe or wmic.exe` | `vssadmin.exe and wmic.exe` | Wazuh rules can't hold an `or` |
-| 2 | `Image\|endswith: '\\powershell.exe'` | regex needing **two** backslashes | Sigma `\\` means one backslash; we escaped it twice |
-| 3 | `CommandLine\|contains: '-EncodedCommand'` | case-sensitive PCRE | Sigma matching is case-insensitive; `-encodedcommand` walked past |
-| 4 | `CommandLine has_any (" -enc", ...)` (Sentinel) | whole-term match | KQL `has_any` matches terms, not substrings; `-EncodedCommand` isn't the term `-enc` |
-| 5 | `QueryName\|re: '[A-Za-z0-9]{40,}\\.'` | regex requiring a literal backslash | the rule file, not the compiler, escaped the dot twice |
-
-If you run any Sigma-to-anything converter, go check your output for #2 and #3.
-They are the kind of bug a green CI run does not catch, because the file is
-well-formed and the test suite is checking the shape of the XML, not whether a
-real event would match it.
+That is a lot of detections to switch on at once. Rule IDs start at 100100, so
+check for collisions with local rules you already have, read the report, and
+expect to tune. The rules remain the work of their SigmaHQ authors under the
+[Detection Rule License 1.1](https://github.com/SigmaHQ/Detection-Rule-License);
+each compiled rule carries its author and a link back to the original.
 
 ---
 
-## Compile your own
-
-No clone needed:
-
-```bash
-uvx --from git+https://github.com/zshguy/tyrian-detection-pack sigma-compile \
-    --input /path/to/sigma/rules --backend wazuh --out ./wazuh
-```
-
-(`pipx run --spec git+https://github.com/zshguy/tyrian-detection-pack sigma-compile ...` works the same way.)
-
-Or from a checkout:
+## Or compile your own
 
 ```bash
 git clone https://github.com/zshguy/tyrian-detection-pack
 cd tyrian-detection-pack && pip install pyyaml
 
-python tools/sigma_compile.py --backend wazuh --out dist/wazuh           # this pack
-python tools/sigma_compile.py --input ~/sigma/rules --backend wazuh --out /tmp/wazuh   # any corpus
+# The rules in this repo
+python tools/sigma_compile.py --backend wazuh --out dist/wazuh
+
+# Or any Sigma corpus at all
+python tools/sigma_compile.py --input /path/to/sigma/rules --backend wazuh --out dist/wazuh
 ```
 
-Backends: `wazuh`, `splunk`, `sentinel`, `navigator`, plus `report` for a
-translation table and `validate` for a strict lint. MIT licensed. One file, one
-dependency, no signup.
+Backends: `wazuh`, `splunk`, `sentinel`, `navigator`. MIT licensed. No signup,
+no gated download, no "request a demo" wall.
+
+---
+
+## Why another one of these
+
+pySigma, which maintains the backends most people use, has
+[no Wazuh backend](https://github.com/SigmaHQ/pySigma/discussions/257). So Wazuh
+operators hand-translate Sigma into `<field>` regex XML, and hand translation is
+where detections die quietly: the rule loads, the manager is healthy, and it can
+never match.
+
+**Prior art, because this is not a new idea.**
+[theflakes/sigma_to_wazuh](https://github.com/theflakes/sigma_to_wazuh) is the
+most complete previous attempt and is worth your time; its author has since
+moved to a Go rewrite, [StoW](https://github.com/theflakes/StoW).
+[sigWah](https://github.com/SanWieb/sigWah) did the same job in 2020 and is
+archived. All of them run into the same wall, and `sigma_to_wazuh` says so in
+its own README:
+
+> Some logic conversion is still broken due to the complexities of converting
+> Sigma OR logic into Wazuh OR logic unfortunately.
+
+That wall is the problem worth solving. A Wazuh rule is **one flat conjunction**
+of `<field>` tests, so it cannot hold an `or` at all. Collapse a disjunction into
+one rule and it silently becomes an `and`: our own shadow-copy deletion rule
+spent months requiring `Image` to be `vssadmin.exe` *and* `wmic.exe`
+simultaneously. It could never have fired.
+
+The fix is to rewrite the condition into disjunctive normal form and emit one
+sibling rule per branch, which is why 3,144 Sigma rules come out as 3,633 Wazuh
+rules. Everything else here follows from taking that kind of failure seriously.
+
+---
 
 ## Does it work on rules that are not ours
 
@@ -131,6 +135,8 @@ Linux, auditbeat), which this compiler does not map, so translating it would
 produce a rule that deploys and never matches
 ```
 
+---
+
 ## Use it in your own CI
 
 If you maintain Sigma rules and run Wazuh, the compiler is a GitHub Action:
@@ -152,32 +158,31 @@ on the command line for tracking translation drift over time.
 
 ## The corpus
 
-85 rules, 79 ATT&CK techniques, 12 tactics, across Windows, Linux, AWS,
-Entra ID and Microsoft 365. Counts are generated, never hand-maintained. Full
-per-rule table in [COVERAGE.md](COVERAGE.md).
+67 rules, 64 ATT&CK techniques, 11 tactics, Windows and Linux. Counts are
+generated, never hand-maintained. Full per-rule table in [COVERAGE.md](COVERAGE.md).
 
 | Tactic | Rules | Examples |
 |---|---:|---|
-| Credential Access | 18 | Kerberoasting, AS-REP roasting, DCSync, NTDS.dit, LSASS via `comsvcs.dll`, ADCS ESC1, shadow credentials, golden/silver ticket tooling, browser password stores, Entra password spray, MFA fatigue |
-| Persistence | 16 | Run keys, services, WMI subscriptions, AdminSDHolder, cron, systemd, `ld.so.preload`, AWS AdministratorAccess attached, Entra admin role assigned, app secrets added, mailbox FullAccess |
-| Defense Evasion | 12 | Event log cleared, Defender disabled, AMSI bypass, process hollowing, DCShadow, auditd tampering, CloudTrail / GuardDuty off, M365 audit log off |
-| Lateral Movement | 8 | PsExec, pass-the-hash, WMI, WinRM, DCOM, admin-share writes, RDP enabled via registry, `tscon` session hijack |
+| Credential Access | 14 | Kerberoasting, AS-REP roasting, DCSync, NTDS.dit, LSASS via `comsvcs.dll`, SAM hive dump, ADCS ESC1 SAN abuse, shadow credentials, krbtgt reset, `/etc/shadow` access |
+| Persistence | 12 | Run keys, services, WMI subscriptions, scheduled tasks, AdminSDHolder, cron, systemd units, `authorized_keys`, `ld.so.preload`, kernel modules |
+| Defense Evasion | 10 | Event log cleared, Defender disabled, AMSI bypass, process injection, process hollowing, rundll32 abuse, DCShadow, auditd tampering, `/var/log` deletion |
 | Execution | 7 | Encoded PowerShell, download cradles, `mshta`, Squiblydoo, `certutil`, Linux reverse shells, curl-pipe-bash |
-| Privilege Escalation | 7 | RBCD, unconstrained delegation, GPO modification, BYOVD, sudoers, container escape, logon type 9 |
-| Initial Access | 4 | Office spawning a script host, web server spawning a shell, script run from a zip or Downloads, AWS root console login |
+| Lateral Movement | 6 | PsExec, pass-the-hash, WMI, WinRM, DCOM, admin-share writes |
+| Privilege Escalation | 6 | RBCD, unconstrained delegation, GPO modification, BYOVD drivers, sudoers, container escape |
 | Impact | 3 | Shadow-copy deletion, backup destruction, mass service stop |
 | Command and Control | 3 | DNS tunneling, Cobalt Strike named pipes, BITS transfers |
-| Collection | 2 | S3 public access block removed, M365 forwarding rules |
 | Discovery | 3 | SharpHound collection, domain recon burst, Linux enumeration burst |
 | Exfiltration | 2 | Archive staging, rclone to cloud storage |
+| Initial Access | 1 | Office spawning a script host |
 
 Two things make this corpus worth having on top of SigmaHQ:
 
 **Rules say whether they have ever fired.** The `stable` ones were written
 against a live range: the attack was detonated, the telemetry captured, the rule
 tuned against what actually appeared in the log. Rules that have not had that
-treatment are marked `status: experimental` and say so in the file. A rule set
-that lies about its own maturity is worse than one that is simply small.
+treatment are marked `status: experimental` and say so in the file. There is no
+prize for pretending otherwise, and a rule set that lies about its own maturity
+is worse than one that is simply small.
 
 **Every rule carries a way to trigger it.** "How do I test this?" usually has no
 answer. Here it is a required field, and it travels into the compiled output, so
@@ -209,35 +214,33 @@ that raises an error instead of emitting a wrong rule.
 **Supported:** string/int/list values, `null`, unfielded keyword search, the
 `contains` / `startswith` / `endswith` / `re` / `all` / `cased` modifiers, `1 of`
 and `all of` with `them` and `prefix*`, `and` / `or` / `not`, parentheses, `*`
-and `?` wildcards, Sigma escaping (`\\`, `\*`, `\?`), and
-`| count(field) by other > n` aggregation.
+and `?` wildcards, and `| count(field) by other > n` aggregation.
 
-**Not supported (raises):** `near` correlation, `base64offset`, `utf16`, `cidr`,
-`windash`. Pull requests for these are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-**Log sources:** Windows (Security, Sysmon, System, PowerShell), Linux auditd,
-AWS CloudTrail, Entra ID sign-in and audit logs, Microsoft 365 / Exchange. Each
-one maps to the namespace its backend's connector actually produces
-(`win.eventdata.*`, `audit.*`, `aws.*`, `office365.*` in Wazuh; `AWSCloudTrail`,
-`SigninLogs`, `OfficeActivity` in Sentinel). An unknown log source is emitted
-unscoped with a `TUNE:` note, never quietly scoped to Windows.
+**Not supported (raises):** `near` correlation, `base64offset`, `utf16`, `cidr`.
 
 **Fields are resolved per platform, strictly.** Windows fields fall back to a
-derived Sysmon name, which is correct for Sysmon's open-ended schema. Linux and
-cloud have no such regular fallback, so an unmapped field is a hard error
-naming the fields that do exist.
+derived Sysmon name, which is correct for Sysmon's open-ended schema. Linux has
+no such regular fallback, so an unmapped field is a hard error naming the fields
+that do exist. Lookup is case-insensitive, because Sigma auditd rules spell
+fields the way auditd does (`type`, `exe`, `a0`) and refusing a rule over a
+capital letter helps nobody.
 
-**Disjunctions become sibling Wazuh rules.** See above. Likewise `|all`
-compiles to PCRE2 lookaheads rather than alternation, because alternation means
-"any" and `all` means "all".
-
-**Matching is case-insensitive unless you say otherwise.** Wazuh patterns are
-emitted as PCRE2 with `(?i)` unless the modifier is `|cased` or `|re`, which is
-what Sigma specifies and what most hand-written Wazuh rules get wrong.
+**Disjunctions become sibling Wazuh rules.** A Wazuh rule is one flat
+conjunction of `<field>` tests, so it cannot hold an `or`. The compiler rewrites
+the condition into disjunctive normal form and emits one rule per branch. Before
+this, `a or b` silently collapsed into `a and b`, which produced rules that could
+never fire (the shadow-copy deletion rule wanted `Image` to be `vssadmin.exe`
+*and* `wmic.exe` simultaneously). Likewise `|all` compiles to PCRE2 lookaheads
+rather than regex alternation, because alternation means "any" and `all` means
+"all".
 
 **Unfielded keywords are not anchored.** Sigma keyword search means the value
 appears somewhere in the event, so it compiles to an unanchored Wazuh `<regex>`
 over the whole log, not `^value$` against a field that does not exist.
+
+**An unknown logsource is not quietly scoped to Windows.** A rule whose product
+has no Wazuh group mapping is emitted with no `<if_group>` and a `TUNE:` note,
+rather than being scoped to Windows events where it could never match.
 
 Aggregation is what most converters get wrong, so here is one rule in all three
 dialects, compiled from a single source file:
@@ -253,7 +256,6 @@ timeframe: 5m
 <frequency>10</frequency>
 <timeframe>300</timeframe>
 <same_field>win.eventdata.ipAddress</same_field>
-<different_field>win.eventdata.targetUserName</different_field>
 ```
 ```spl
 | bucket _time span=5m | stats dc(TargetUserName) as hits by _time,IpAddress | where hits > 10
@@ -309,8 +311,7 @@ Agent-side config for the channels these rules need is in
 the Linux rules, event channels for the Windows ones, and FIM for the encryption
 rules. Most Windows rules assume **Sysmon** is installed and forwarding, and the
 Active Directory rules need directory service auditing enabled on the DCs (and CA
-auditing for the ADCS rules), neither of which is on by default. The cloud rules
-need the matching Wazuh module (`aws-s3`, `azure-logs`, `office365`) configured.
+auditing for the ADCS rules), neither of which is on by default.
 
 **Splunk**, `dist/splunk/tyrian_detections.conf` has one stanza per rule. Adjust
 the `index=` prefix for your environment.
@@ -344,29 +345,40 @@ Options, in order of preference:
 2. Add a Defender exclusion for the checkout:
    `Add-MpPreference -ExclusionPath C:\path\to\tyrian-detection-pack`
 3. Use the `rules/` sources directly. They are never quarantined, because the
-   attacker strings in a YAML list do not look like a payload to a scanner.
+   attacker strings are split across YAML list items rather than concatenated
+   into one query line.
+
+Do not "fix" this by obfuscating rule content. A detection you had to hide from
+your own scanner is a detection you can no longer read or review.
 
 ---
 
 ## Contributing
 
-A new rule is one YAML file and takes about five minutes. The compiler lints it,
-CI compiles it to every backend, and the coverage table updates itself.
-[CONTRIBUTING.md](CONTRIBUTING.md) has the template and the house rules.
+Rules live in `rules/<tactic>/<name>.yml` and need a `title`, `id`,
+`description`, `logsource`, `detection`, `level`, `validation`, and at least one
+`attack.tNNNN` tag. CI validates every rule, recompiles every backend, and
+regenerates `dist/` and `COVERAGE.md` itself, so you never have to.
 
-The most useful things you can do right now, in order:
+```bash
+python tools/sigma_compile.py --backend validate
+python -m unittest discover -s tools -p "test_*.py"
+```
 
-1. **Fire an `experimental` rule on a range and tell us what happened.** 54 of
-   the 85 have never seen a real event. Confirming one (or finding it broken)
-   is worth more than writing three new ones. Use the
-   [missed detection](.github/ISSUE_TEMPLATE/missed-detection.yml) or
-   [false positive](.github/ISSUE_TEMPLATE/false-positive.yml) template.
-2. **Add a log source.** macOS, Okta, Google Cloud and GitHub audit logs are
-   the gaps. The `good first issue` label marks the ones with a worked plan.
-3. **Implement a Sigma modifier.** `windash` and `cidr` are small and would
-   unlock about 40 more SigmaHQ rules.
+Validation checks more than presence: the condition has to parse, and every field
+has to resolve on every backend that will render it.
 
-If this saved you a toolchain, a star helps the next Wazuh operator find it.
+The bar for a new rule is **honesty about evidence**. If you detonated it and
+tuned against the event, mark it `stable` and say what generated the telemetry.
+If you reasoned it out from the data source, mark it `experimental` and fill in
+`validation.fire` with the command that would prove it. Both are welcome. What
+rots a rule set is `stable` on something nobody ever ran.
+
+**A missing field mapping is a good first issue.** If the compiler refuses one of
+your rules with "has no wazuh mapping", the fix is usually one line in the field
+table, and that fix helps everyone pointing the compiler at the same log source.
+
+---
 
 ## Related
 
@@ -376,10 +388,3 @@ watch which of your rules catch them. Technique write-ups with the telemetry
 behind each rule: [tyriancyber.com/attack](https://tyriancyber.com/attack).
 
 The rules are useful on their own. That is the point of publishing them.
-
----
-
-## License
-
-MIT for everything in this repo. Compiled SigmaHQ output in the releases is
-under the Detection Rule License 1.1, same as the source rules.

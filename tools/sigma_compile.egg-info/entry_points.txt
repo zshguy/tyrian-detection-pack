@@ -1,0 +1,2 @@
+[console_scripts]
+sigma-compile = sigma_compile:main

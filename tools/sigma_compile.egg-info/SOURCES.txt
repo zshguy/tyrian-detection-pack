@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+tools/sigma_compile.py
+tools/sigma_compile.egg-info/PKG-INFO
+tools/sigma_compile.egg-info/SOURCES.txt
+tools/sigma_compile.egg-info/dependency_links.txt
+tools/sigma_compile.egg-info/entry_points.txt
+tools/sigma_compile.egg-info/requires.txt
+tools/sigma_compile.egg-info/top_level.txt

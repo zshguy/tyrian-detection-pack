@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sigma-compile"
+version = "1.1.0"
+description = "Compile Sigma detection rules to Wazuh, Splunk and Sentinel. Refuses what it cannot translate faithfully."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6"]
+keywords = ["sigma", "wazuh", "splunk", "sentinel", "detection-engineering", "siem", "mitre-attack"]
+classifiers = [
+  "Topic :: Security",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/zshguy/tyrian-detection-pack"
+"SigmaHQ ruleset" = "https://github.com/zshguy/tyrian-detection-pack/releases/tag/sigmahq-latest"
+
+[project.scripts]
+sigma-compile = "sigma_compile:main"
+
+[tool.setuptools]
+package-dir = { "" = "tools" }
+py-modules = ["sigma_compile"]
